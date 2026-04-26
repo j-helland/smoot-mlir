@@ -1,0 +1,10 @@
+CompileFlags:
+  Add:
+    - -std=c++26
+    - -I/Users/jhelland/llvm-project/mlir/include
+    - -I/Users/jhelland/llvm-project/llvm/include
+    - -I/Users/jhelland/llvm-project/build-arm64/include
+    - -I/Users/jhelland/llvm-project/build-arm64/tools/mlir/include
+    - -D__STDC_CONSTANT_MACROS
+    - -D__STDC_FORMAT_MACROS
+    - -D__STDC_LIMIT_MACROS
