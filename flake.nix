@@ -20,6 +20,7 @@
         pkgs.ccache
         llvm.llvm
         llvm.mlir
+        llvm.tblgen
         llvm.clang
       ];
 

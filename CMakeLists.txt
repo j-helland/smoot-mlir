@@ -16,13 +16,31 @@ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 include(AddMLIR)
 
+if(NOT IS_ABSOLUTE "${MLIR_TABLEGEN_EXE}")
+  find_program(MLIR_TABLEGEN_EXE_PATH "${MLIR_TABLEGEN_EXE}" REQUIRED)
+  set(MLIR_TABLEGEN_EXE "${MLIR_TABLEGEN_EXE_PATH}")
+endif()
+set(MLIR_TABLEGEN_TARGET "${MLIR_TABLEGEN_EXE}")
+
+message(STATUS "Using MLIR tablegen: ${MLIR_TABLEGEN_EXE}")
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-add_llvm_library(UnitVerifyPass
+add_subdirectory(include/Units)
+
+add_llvm_library(UnitsDialectPlugin
   MODULE
-  lib/UnitVerifyPass.cpp
+  lib/Units/UnitsDialect.cpp
+  lib/Units/UnitsOps.cpp
+  lib/Units/UnitsDialectPlugin.cpp
+
+  DEPENDS
+  MLIRUnitsDialectIncGen
+  MLIRUnitsOpsIncGen
 
   PLUGIN_TOOL
   mlir-opt
@@ -30,4 +48,3 @@ add_llvm_library(UnitVerifyPass
   LINK_LIBS
   MLIR
 )
-
