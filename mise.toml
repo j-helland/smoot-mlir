@@ -1,9 +1,9 @@
 [tasks.build]
 run = """
 cmake -S . -B build-arm64 \
-      -DCMAKE_OSX_ARCHITECTURES=arm64 \
-      -DCMAKE_C_COMPILER=/usr/bin/clang \
-      -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+  -DCMAKE_OSX_ARCHITECTURES=arm64 \
+  -DCMAKE_C_COMPILER=/usr/bin/clang \
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++
 cmake --build build-arm64
 """
 
@@ -11,7 +11,15 @@ cmake --build build-arm64
 depends = "build"
 run = """
 mlir-opt \
-      --load-pass-plugin=build-arm64/UnitVerifyPass.dylib \
-      --pass-pipeline='builtin.module(verify-units)' \
-      test.mlir
+  --load-pass-plugin=build-arm64/UnitVerifyPass.dylib \
+  --pass-pipeline='builtin.module(verify-units)' \
+  test.mlir
+"""
+
+[tasks.test]
+depends = "build"
+run = """
+cmake \
+  --build build-arm64 \
+  --target CheckUnits
 """

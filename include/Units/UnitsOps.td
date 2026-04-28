@@ -9,4 +9,10 @@ def Units_ConstOp : Units_Op<"const"> {
 
   let arguments = (ins F64Attr:$value, StrAttr:$unit);
   let results = (outs F64:$result);
+
+  // Divert printer and parser to `parse` and `print` methods in the .cpp file.
+  let hasCustomAssemblyFormat = 1;
+
+  // Indicate that additional verification is required.
+  let hasVerifier = 1;
 }

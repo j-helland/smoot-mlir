@@ -15,17 +15,19 @@
   in {
     devShells.${system}.default = pkgs.mkShell {
       packages = [
+        # MLIR
         pkgs.cmake
         pkgs.ninja
         pkgs.ccache
         llvm.llvm
         llvm.mlir
         llvm.tblgen
-        llvm.clang
+        # testing
+        pkgs.python3Packages.lit
       ];
 
       shellHook = ''
-        export MLIR_DIR="${llvm.mlir}/lib/cmake/mlir"
+        export MLIR_DIR="${llvm.mlir.dev}/lib/cmake/mlir"
         export LLVM_DIR="${llvm.llvm.dev}/lib/cmake/llvm"
 
         export PATH="${llvm.mlir}/bin:${llvm.llvm}/bin:${llvm.clang}/bin:$PATH"

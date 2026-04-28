@@ -2,10 +2,10 @@
 
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/OpDefinition.h"
-// #include "mlir/IR/SymbolTable.h"
-// #include "mlir/Interfaces/CallInterfaces.h"
+#include "mlir/IR/SymbolTable.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
-// #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 
 // auto-generated header
 #define GET_OP_CLASSES

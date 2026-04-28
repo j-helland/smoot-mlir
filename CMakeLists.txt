@@ -48,3 +48,23 @@ add_llvm_library(UnitsDialectPlugin
   LINK_LIBS
   MLIR
 )
+
+#==================================================
+# Testing
+#==================================================
+find_program(LIT_EXECUTABLE lit REQUIRED)
+find_program(MLIR_OPT_EXECUTABLE mlir-opt REQUIRED)
+find_program(FILECHECK_EXECUTABLE FileCheck REQUIRED)
+
+set(UNITS_DIALECT_PLUGIN "${CMAKE_CURRENT_BINARY_DIR}/UnitsDialectPlugin${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+configure_file(
+  test/lit.site.cfg.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/test/lit.site.cfg.py
+  @ONLY
+)
+
+add_custom_target(CheckUnits
+  COMMAND ${LIT_EXECUTABLE} -sv ${CMAKE_CURRENT_BINARY_DIR}/test
+  DEPENDS UnitsDialectPlugin
+)
