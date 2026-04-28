@@ -17,3 +17,13 @@ def Units_ConstOp : Units_Op<"const"> {
   // Indicate that additional verification is required.
   let hasVerifier = 1;
 }
+
+def Units_MulOp : Units_Op<"mul"> {
+  let summary = "arithmetic multiplication of quantities";
+
+  let arguments = (ins Units_QuantityType:$lhs, Units_QuantityType:$rhs);
+  let results = (outs Units_QuantityType:$result);
+
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+}

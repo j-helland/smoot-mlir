@@ -1,6 +1,12 @@
 #include "Units/UnitsOps.h"
 #include "Units/UnitsTypes.h"
+#include "mlir/IR/OpImplementation.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/LogicalResult.h"
 
+//==================================================
+// ConstOp
+//==================================================
 // For `let hasCustomAssemblyFormat = 1`
 mlir::ParseResult units::ConstOp::parse(mlir::OpAsmParser &parser,
                                         mlir::OperationState &result) {
@@ -58,6 +64,66 @@ llvm::LogicalResult units::ConstOp::verify() {
     return emitOpError() << "value attribute type must match result type";
 
   return mlir::success();
+}
+
+//==================================================
+// MulOp
+//==================================================
+mlir::ParseResult units::MulOp::parse(mlir::OpAsmParser &parser,
+                                      mlir::OperationState &result) {
+  mlir::OpAsmParser::UnresolvedOperand lhs;
+  mlir::OpAsmParser::UnresolvedOperand rhs;
+  mlir::Type lhsType;
+  mlir::Type rhsType;
+  mlir::Type resultType;
+
+  if (parser.parseOperand(lhs) || parser.parseComma() ||
+      parser.parseOperand(rhs))
+    return mlir::failure();
+
+  if (parser.parseColonType(lhsType) || parser.parseComma() ||
+      parser.parseType(rhsType))
+    return mlir::failure();
+
+  if (parser.parseArrowTypeList(result.types) ||
+      parser.resolveOperand(lhs, lhsType, result.operands) ||
+      parser.resolveOperand(rhs, rhsType, result.operands))
+    return mlir::failure();
+
+  return mlir::success();
+}
+
+void units::MulOp::print(mlir::OpAsmPrinter &printer) {
+  printer << " " << getLhs() << ", " << getRhs() << " : ";
+  printer.printType(getLhs().getType());
+  printer << ", ";
+  printer.printType(getRhs().getType());
+  printer << " -> ";
+  printer.printType(getResult().getType());
+}
+
+llvm::LogicalResult units::MulOp::verify() {
+  auto lhsType = llvm::cast<units::QuantityType>(getLhs().getType());
+  auto rhsType = llvm::cast<units::QuantityType>(getRhs().getType());
+  auto resultType = llvm::cast<units::QuantityType>(getResult().getType());
+
+  if (lhsType.getElementType() != rhsType.getElementType() ||
+      lhsType.getElementType() != resultType.getElementType())
+    return emitOpError() << "operand and result element types must match";
+
+  llvm::StringRef lhsUnit = lhsType.getUnit();
+  llvm::StringRef rhsUnit = rhsType.getUnit();
+  llvm::StringRef resultUnit = resultType.getUnit();
+
+  // TODO(jwh): temporary PoC
+  if (lhsUnit == "m" && rhsUnit == "s") {
+    if (resultUnit != "m*s")
+      return emitOpError() << "expected result unit `m*s`";
+    return mlir::success();
+  }
+
+  return emitOpError() << "unsupported unit multiplication `" << lhsUnit
+                       << "` * `" << rhsUnit << "`";
 }
 
 //==================================================
