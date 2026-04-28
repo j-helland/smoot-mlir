@@ -1,30 +1,31 @@
 #include "Units/UnitsOps.h"
-#include "llvm/Support/Casting.h"
+#include "Units/UnitsTypes.h"
 
 // For `let hasCustomAssemblyFormat = 1`
 mlir::ParseResult units::ConstOp::parse(mlir::OpAsmParser &parser,
                                         mlir::OperationState &result) {
   double value;
-  std::string unit;
-  mlir::Type type;
+  mlir::Type resultType;
 
   if (parser.parseFloat(value))
     return mlir::failure();
 
-  if (parser.parseString(&unit))
-    return mlir::failure();
-
   auto typeLoc = parser.getCurrentLocation();
-  if (parser.parseColonType(type))
+  if (parser.parseColonType(resultType))
     return mlir::failure();
 
-  const auto floatType = llvm::dyn_cast<mlir::FloatType>(type);
-  if (!floatType)
+  auto quantityType = llvm::dyn_cast<units::QuantityType>(resultType);
+  if (!quantityType)
+    return parser.emitError(typeLoc) << "result must be a quantity type";
+
+  auto elementType =
+      llvm::dyn_cast<mlir::FloatType>(quantityType.getElementType());
+  if (!elementType)
     return parser.emitError(typeLoc) << "expected floating-point result type";
 
-  result.addAttribute("value", mlir::FloatAttr::get(floatType, value));
-  result.addAttribute("unit", mlir::StringAttr::get(parser.getContext(), unit));
-  result.addTypes(type);
+  result.addAttribute(
+      "value", mlir::FloatAttr::get(quantityType.getElementType(), value));
+  result.addTypes(resultType);
   return mlir::success();
 }
 
@@ -40,23 +41,20 @@ mlir::ParseResult units::ConstOp::parse(mlir::OpAsmParser &parser,
 void units::ConstOp::print(mlir::OpAsmPrinter &printer) {
   // only print the float value, otherwise we get redundant `f64`s.
   printer << " " << getValueAttr().getValueAsDouble();
-  printer << " ";
-  printer.printAttribute(getUnitAttr());
   printer << " : ";
   printer.printType(getResult().getType());
 }
 
 // For `let hasVerifier = 1`
 llvm::LogicalResult units::ConstOp::verify() {
-  llvm::StringRef unit = getUnit();
-  if (unit.empty())
+  auto resultType = llvm::dyn_cast<units::QuantityType>(getResult().getType());
+  if (!resultType)
+    return emitOpError() << "result must be a quantity type";
+
+  if (resultType.getUnit().empty())
     return emitOpError() << "unit must not be empty";
 
-  auto resultType = llvm::dyn_cast<mlir::FloatType>(getResult().getType());
-  if (!resultType)
-    return emitOpError() << "result must be a floating-point type";
-
-  if (getValueAttr().getType() != getResult().getType())
+  if (getValueAttr().getType() != resultType.getElementType())
     return emitOpError() << "value attribute type must match result type";
 
   return mlir::success();

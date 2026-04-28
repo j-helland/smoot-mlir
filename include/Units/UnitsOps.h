@@ -7,6 +7,8 @@
 #include "mlir/Interfaces/FunctionInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
+#include "Units/UnitsTypes.h"
+
 // auto-generated header
 #define GET_OP_CLASSES
 #include "Units/UnitsOps.h.inc"

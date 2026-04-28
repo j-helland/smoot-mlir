@@ -35,12 +35,14 @@ add_subdirectory(include/Units)
 add_llvm_library(UnitsDialectPlugin
   MODULE
   lib/Units/UnitsDialect.cpp
+  lib/Units/UnitsTypes.cpp
   lib/Units/UnitsOps.cpp
   lib/Units/UnitsDialectPlugin.cpp
 
   DEPENDS
   MLIRUnitsDialectIncGen
   MLIRUnitsOpsIncGen
+  MLIRUnitsTypesIncGen
 
   PLUGIN_TOOL
   mlir-opt
