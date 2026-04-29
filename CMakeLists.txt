@@ -38,6 +38,7 @@ add_llvm_library(UnitsDialectPlugin
   lib/Units/UnitsTypes.cpp
   lib/Units/UnitsOps.cpp
   lib/Units/UnitsDialectPlugin.cpp
+  lib/Units/UnitsToArithPass.cpp
 
   DEPENDS
   MLIRUnitsDialectIncGen
@@ -49,6 +50,8 @@ add_llvm_library(UnitsDialectPlugin
 
   LINK_LIBS
   MLIR
+  MLIRArithDialect
+  MLIRTransforms
 )
 
 #==================================================

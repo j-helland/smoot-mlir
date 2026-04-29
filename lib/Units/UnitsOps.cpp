@@ -1,5 +1,6 @@
 #include "Units/UnitsOps.h"
 #include "Units/UnitsTypes.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/OpImplementation.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/LogicalResult.h"
@@ -102,6 +103,27 @@ void units::MulOp::print(mlir::OpAsmPrinter &printer) {
   printer.printType(getResult().getType());
 }
 
+static std::string combineUnits(llvm::StringRef lhs, llvm::StringRef rhs) {
+  if (lhs.empty())
+    return rhs.str();
+  if (rhs.empty())
+    return lhs.str();
+  return (lhs + "*" + rhs).str();
+}
+
+void units::MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                         mlir::Value lhs, mlir::Value rhs) {
+  auto lhsType = llvm::cast<units::QuantityType>(lhs.getType());
+  auto rhsType = llvm::cast<units::QuantityType>(rhs.getType());
+
+  auto resultType = units::QuantityType::get(
+      builder.getContext(), lhsType.getElementType(),
+      combineUnits(lhsType.getUnit(), rhsType.getUnit()));
+
+  state.addOperands({lhs, rhs});
+  state.addTypes(resultType);
+}
+
 llvm::LogicalResult units::MulOp::verify() {
   auto lhsType = llvm::cast<units::QuantityType>(getLhs().getType());
   auto rhsType = llvm::cast<units::QuantityType>(getRhs().getType());
@@ -111,19 +133,12 @@ llvm::LogicalResult units::MulOp::verify() {
       lhsType.getElementType() != resultType.getElementType())
     return emitOpError() << "operand and result element types must match";
 
-  llvm::StringRef lhsUnit = lhsType.getUnit();
-  llvm::StringRef rhsUnit = rhsType.getUnit();
-  llvm::StringRef resultUnit = resultType.getUnit();
+  const std::string expectedUnit =
+      combineUnits(lhsType.getUnit(), rhsType.getUnit());
+  if (resultType.getUnit() != expectedUnit)
+    return emitOpError() << "expected result unit `" << expectedUnit << "`";
 
-  // TODO(jwh): temporary PoC
-  if (lhsUnit == "m" && rhsUnit == "s") {
-    if (resultUnit != "m*s")
-      return emitOpError() << "expected result unit `m*s`";
-    return mlir::success();
-  }
-
-  return emitOpError() << "unsupported unit multiplication `" << lhsUnit
-                       << "` * `" << rhsUnit << "`";
+  return mlir::success();
 }
 
 //==================================================

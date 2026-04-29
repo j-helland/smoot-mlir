@@ -24,6 +24,10 @@ def Units_MulOp : Units_Op<"mul"> {
   let arguments = (ins Units_QuantityType:$lhs, Units_QuantityType:$rhs);
   let results = (outs Units_QuantityType:$result);
 
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
+  ];
+
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 }
