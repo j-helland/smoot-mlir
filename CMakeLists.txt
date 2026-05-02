@@ -1,75 +1,36 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.20.0)
 
-project(units-mlir-demo LANGUAGES CXX C)
+project(mlir-units LANGUAGES CXX C)
 
-set(CMAKE_CXX_STANDARD 26)
-set(CMAKE_CXX_STANDARD_REQUIRED YES)
-set(CMAKE_CXX_EXTENSIONS NO)
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to conform to")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_DEPS ON)
 
 find_package(MLIR REQUIRED CONFIG)
-
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+find_program(MLIR_TABLEGEN_EXE_ABSOLUTE NAMES mlir-tblgen REQUIRED)
+set(MLIR_TABLEGEN_EXE "${MLIR_TABLEGEN_EXE_ABSOLUTE}")
+set(MLIR_TABLEGEN_TARGET "${MLIR_TABLEGEN_EXE}")
+set(MLIR_LINK_MLIR_DYLIB ON)
+message(STATUS "Using MLIR TableGen executable: ${MLIR_TABLEGEN_EXE}")
+
+set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 include(AddLLVM)
+include(TableGen)
+
+list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 include(AddMLIR)
-
-if(NOT IS_ABSOLUTE "${MLIR_TABLEGEN_EXE}")
-  find_program(MLIR_TABLEGEN_EXE_PATH "${MLIR_TABLEGEN_EXE}" REQUIRED)
-  set(MLIR_TABLEGEN_EXE "${MLIR_TABLEGEN_EXE_PATH}")
-endif()
-set(MLIR_TABLEGEN_TARGET "${MLIR_TABLEGEN_EXE}")
-
-message(STATUS "Using MLIR tablegen: ${MLIR_TABLEGEN_EXE}")
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
-add_definitions(${LLVM_DEFINITIONS})
+include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/externals/llvm-project)
+include_directories(${PROJECT_SOURCE_DIR}/lib/Dialect)
+include_directories(${PROJECT_BINARY_DIR})
+include_directories(${PROJECT_BINARY_DIR}/lib/Dialect)
 
-add_subdirectory(include/Units)
-
-add_llvm_library(UnitsDialectPlugin
-  MODULE
-  lib/Units/UnitsDialect.cpp
-  lib/Units/UnitsTypes.cpp
-  lib/Units/UnitsOps.cpp
-  lib/Units/UnitsDialectPlugin.cpp
-  lib/Units/UnitsToArithPass.cpp
-
-  DEPENDS
-  MLIRUnitsDialectIncGen
-  MLIRUnitsOpsIncGen
-  MLIRUnitsTypesIncGen
-
-  PLUGIN_TOOL
-  mlir-opt
-
-  LINK_LIBS
-  MLIR
-  MLIRArithDialect
-  MLIRTransforms
-)
-
-#==================================================
-# Testing
-#==================================================
-find_program(LIT_EXECUTABLE lit REQUIRED)
-find_program(MLIR_OPT_EXECUTABLE mlir-opt REQUIRED)
-find_program(FILECHECK_EXECUTABLE FileCheck REQUIRED)
-
-set(UNITS_DIALECT_PLUGIN "${CMAKE_CURRENT_BINARY_DIR}/UnitsDialectPlugin${CMAKE_SHARED_LIBRARY_SUFFIX}")
-
-configure_file(
-  test/lit.site.cfg.py.in
-  ${CMAKE_CURRENT_BINARY_DIR}/test/lit.site.cfg.py
-  @ONLY
-)
-
-add_custom_target(CheckUnits
-  COMMAND ${LIT_EXECUTABLE} -sv ${CMAKE_CURRENT_BINARY_DIR}/test
-  DEPENDS UnitsDialectPlugin
-)
+add_subdirectory(lib)
+add_subdirectory(tools)
+add_subdirectory(tests)

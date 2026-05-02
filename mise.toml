@@ -1,9 +1,6 @@
 [tasks.build]
 run = """
-cmake -S . -B build-arm64 \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 \
-  -DCMAKE_C_COMPILER=/usr/bin/clang \
-  -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+cmake -S . -B build-arm64
 cmake --build build-arm64
 """
 
@@ -21,5 +18,5 @@ depends = "build"
 run = """
 cmake \
   --build build-arm64 \
-  --target CheckUnits
+  --target check-mlir-units
 """

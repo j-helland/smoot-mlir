@@ -31,3 +31,17 @@ def Units_MulOp : Units_Op<"mul"> {
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 }
+
+def Units_AddOp : Units_Op<"add"> {
+  let summary = "arithmetic addition of quantities";
+
+  let arguments = (ins Units_QuantityType:$lhs, Units_QuantityType:$rhs);
+  let results = (outs Units_QuantityType:$result);
+
+  let builders = [
+    OpBuilder<(ins "mlir::Value":$lhs, "mlir::Value":$rhs)>
+  ];
+
+  let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+}

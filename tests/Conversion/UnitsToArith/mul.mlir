@@ -1,4 +1,4 @@
-// RUN: %mlir-opt --load-dialect-plugin=%units_plugin --load-pass-plugin=%units_plugin --pass-pipeline='builtin.module(convert-units-to-arith)' %s | %FileCheck %s
+// RUN: %units-opt --pass-pipeline='builtin.module(units-to-standard)' %s | %FileCheck %s
 
 module {
   %0 = units.const 4.2 : !units.quantity<f64, "m">

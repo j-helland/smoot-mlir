@@ -1,5 +1,7 @@
 #include "Units/UnitsTypes.h"
 
+namespace units = mlir::units;
+
 mlir::Type units::QuantityType::parse(mlir::AsmParser &parser) {
   mlir::Type elementType;
   std::string unit;
@@ -17,14 +19,4 @@ void units::QuantityType::print(mlir::AsmPrinter &printer) const {
   printer << ", ";
   printer.printString(getUnit());
   printer << ">";
-}
-
-#define GET_TYPEDEF_CLASSES
-#include "Units/UnitsTypes.cpp.inc"
-
-void units::UnitsDialect::registerTypes() {
-  addTypes<
-#define GET_TYPEDEF_LIST
-#include "Units/UnitsTypes.cpp.inc"
-      >();
 }

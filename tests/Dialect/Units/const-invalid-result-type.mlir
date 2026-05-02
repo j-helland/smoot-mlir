@@ -1,4 +1,4 @@
-// RUN: %mlir-opt --load-dialect-plugin=%units_plugin %s -verify-diagnostics
+// RUN: %units-opt %s -verify-diagnostics
 
 module {
   // expected-error @below {{expected floating-point result type}}

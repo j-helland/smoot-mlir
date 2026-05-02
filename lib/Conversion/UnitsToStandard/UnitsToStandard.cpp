@@ -1,7 +1,9 @@
+#include "lib/Conversion/UnitsToStandard/UnitsToStandard.h"
 #include "Units/UnitsOps.h"
 #include "Units/UnitsTypes.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -15,34 +17,28 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
+namespace mlir::units {
+
+#define GEN_PASS_DEF_UNITSTOSTANDARD
+#include "lib/Conversion/UnitsToStandard/UnitsToStandard.h.inc"
+
 namespace {
-struct ConvertUnitsToArithPass
-    : public mlir::PassWrapper<ConvertUnitsToArithPass,
-                               mlir::OperationPass<mlir::ModuleOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ConvertUnitsToArithPass)
-
-  llvm::StringRef getArgument() const final { return "convert-units-to-arith"; }
-  llvm::StringRef getDescription() const final {
-    return "Lower the units dialect to arith";
-  }
-
+struct UnitsToStandardPass
+    : public impl::UnitsToStandardBase<UnitsToStandardPass> {
+  using Base::Base;
   void runOnOperation() override;
-
-  void getDependentDialects(mlir::DialectRegistry &registry) const override {
-    registry.insert<mlir::arith::ArithDialect>();
-  }
 };
 } // namespace
 
 namespace {
-struct ConstLowering : mlir::OpConversionPattern<units::ConstOp> {
+struct ConstLowering : mlir::OpConversionPattern<ConstOp> {
   using OpConversionPattern::OpConversionPattern;
 
   mlir::LogicalResult
-  matchAndRewrite(units::ConstOp op, OpAdaptor adaptor,
+  matchAndRewrite(ConstOp op, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
     auto quantityType =
-        llvm::cast<units::QuantityType>(op.getResult().getType());
+        llvm::cast<QuantityType>(op.getResult().getType());
     auto constant = mlir::arith::ConstantOp::create(
         rewriter, op.getLoc(), quantityType.getElementType(),
         op.getValueAttr());
@@ -51,14 +47,14 @@ struct ConstLowering : mlir::OpConversionPattern<units::ConstOp> {
   }
 };
 
-struct MulLowering : mlir::OpConversionPattern<units::MulOp> {
+struct MulLowering : mlir::OpConversionPattern<MulOp> {
   using OpConversionPattern::OpConversionPattern;
 
   mlir::LogicalResult
-  matchAndRewrite(units::MulOp op, OpAdaptor adaptor,
+  matchAndRewrite(MulOp op, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
     auto quantityType =
-        llvm::cast<units::QuantityType>(op.getResult().getType());
+        llvm::cast<QuantityType>(op.getResult().getType());
     auto mul = mlir::arith::MulFOp::create(rewriter, op.getLoc(),
                                            quantityType.getElementType(),
                                            adaptor.getLhs(), adaptor.getRhs());
@@ -66,26 +62,43 @@ struct MulLowering : mlir::OpConversionPattern<units::MulOp> {
     return mlir::success();
   }
 };
+
+struct AddLowering : mlir::OpConversionPattern<AddOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  mlir::LogicalResult
+  matchAndRewrite(AddOp op, OpAdaptor adaptor,
+                  mlir::ConversionPatternRewriter &rewriter) const override {
+    auto quantityType =
+        llvm::cast<QuantityType>(op.getResult().getType());
+    auto add = mlir::arith::AddFOp::create(rewriter, op.getLoc(),
+                                           quantityType.getElementType(),
+                                           adaptor.getLhs(), adaptor.getRhs());
+
+    rewriter.replaceOp(op, add.getResult());
+    return mlir::success();
+  }
+};
 } // namespace
 
-void ConvertUnitsToArithPass::runOnOperation() {
+void UnitsToStandardPass::runOnOperation() {
   mlir::MLIRContext &context = getContext();
 
   mlir::TypeConverter converter;
   // noop on all "normal" types
   converter.addConversion([](mlir::Type type) { return type; });
   // !units.quantity<f64, *> -> f64
-  converter.addConversion([](units::QuantityType type) -> mlir::Type {
+  converter.addConversion([](QuantityType type) -> mlir::Type {
     return type.getElementType();
   });
 
   mlir::RewritePatternSet patterns(&context);
-  patterns.add<ConstLowering, MulLowering>(converter, &context);
+  patterns.add<ConstLowering, MulLowering, AddLowering>(converter, &context);
 
   mlir::ConversionTarget target(context);
   target.addLegalDialect<mlir::arith::ArithDialect>();
   target.addLegalDialect<mlir::BuiltinDialect>();
-  target.addIllegalDialect<units::UnitsDialect>();
+  target.addIllegalDialect<UnitsDialect>();
 
   if (mlir::failed(mlir::applyFullConversion(getOperation(), target,
                                              std::move(patterns)))) {
@@ -93,6 +106,4 @@ void ConvertUnitsToArithPass::runOnOperation() {
   }
 }
 
-void registerConvertUnitsToArithPass() {
-  mlir::PassRegistration<ConvertUnitsToArithPass>();
-}
+} // namespace mlir::units

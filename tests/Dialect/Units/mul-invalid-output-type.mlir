@@ -1,4 +1,4 @@
-// RUN: %mlir-opt --load-dialect-plugin=%units_plugin %s -verify-diagnostics
+// RUN: %units-opt %s -verify-diagnostics
 
 module {
   %0 = units.const 4.2 : !units.quantity<f64, "m">
@@ -9,4 +9,3 @@ module {
     : !units.quantity<f64, "m">, !units.quantity<f64, "s">
     -> !units.quantity<f64, "m">
 }
-

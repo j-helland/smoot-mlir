@@ -5,6 +5,8 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/LogicalResult.h"
 
+namespace units = mlir::units;
+
 //==================================================
 // ConstOp
 //==================================================
@@ -30,8 +32,8 @@ mlir::ParseResult units::ConstOp::parse(mlir::OpAsmParser &parser,
   if (!elementType)
     return parser.emitError(typeLoc) << "expected floating-point result type";
 
-  result.addAttribute(
-      "value", mlir::FloatAttr::get(quantityType.getElementType(), value));
+  auto valueAttr = mlir::FloatAttr::get(elementType, llvm::APFloat(value));
+  result.addAttribute("value", valueAttr);
   result.addTypes(resultType);
   return mlir::success();
 }
@@ -115,7 +117,6 @@ void units::MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                          mlir::Value lhs, mlir::Value rhs) {
   auto lhsType = llvm::cast<units::QuantityType>(lhs.getType());
   auto rhsType = llvm::cast<units::QuantityType>(rhs.getType());
-
   auto resultType = units::QuantityType::get(
       builder.getContext(), lhsType.getElementType(),
       combineUnits(lhsType.getUnit(), rhsType.getUnit()));
@@ -135,6 +136,71 @@ llvm::LogicalResult units::MulOp::verify() {
 
   const std::string expectedUnit =
       combineUnits(lhsType.getUnit(), rhsType.getUnit());
+  if (resultType.getUnit() != expectedUnit)
+    return emitOpError() << "expected result unit `" << expectedUnit << "`";
+
+  return mlir::success();
+}
+
+//==================================================
+// AddOp
+//==================================================
+mlir::ParseResult units::AddOp::parse(mlir::OpAsmParser &parser,
+                                      mlir::OperationState &result) {
+  mlir::OpAsmParser::UnresolvedOperand lhs;
+  mlir::OpAsmParser::UnresolvedOperand rhs;
+  mlir::Type lhsType;
+  mlir::Type rhsType;
+  mlir::Type resultType;
+
+  if (parser.parseOperand(lhs) || parser.parseComma() ||
+      parser.parseOperand(rhs))
+    return mlir::failure();
+
+  if (parser.parseColonType(lhsType) || parser.parseComma() ||
+      parser.parseType(rhsType))
+    return mlir::failure();
+
+  if (parser.parseArrowTypeList(result.types) ||
+      parser.resolveOperand(lhs, lhsType, result.operands) ||
+      parser.resolveOperand(rhs, rhsType, result.operands))
+    return mlir::failure();
+
+  return mlir::success();
+}
+
+void units::AddOp::print(mlir::OpAsmPrinter &printer) {
+  printer << " " << getLhs() << ", " << getRhs() << " : ";
+  printer.printType(getLhs().getType());
+  printer << ", ";
+  printer.printType(getRhs().getType());
+  printer << " -> ";
+  printer.printType(getResult().getType());
+}
+
+void units::AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                         mlir::Value lhs, mlir::Value rhs) {
+  auto lhsType = llvm::cast<units::QuantityType>(lhs.getType());
+  auto resultType = units::QuantityType::get(
+      builder.getContext(), lhsType.getElementType(), lhsType.getUnit());
+
+  state.addOperands({lhs, rhs});
+  state.addTypes(resultType);
+}
+
+llvm::LogicalResult units::AddOp::verify() {
+  auto lhsType = llvm::cast<units::QuantityType>(getLhs().getType());
+  auto rhsType = llvm::cast<units::QuantityType>(getRhs().getType());
+  auto resultType = llvm::cast<units::QuantityType>(getResult().getType());
+
+  if (lhsType.getElementType() != rhsType.getElementType() ||
+      lhsType.getElementType() != resultType.getElementType())
+    return emitOpError() << "operand and result element types must match";
+
+  if (lhsType.getUnit() != rhsType.getUnit())
+    return emitOpError() << "operand units must match";
+
+  auto expectedUnit = lhsType.getUnit();
   if (resultType.getUnit() != expectedUnit)
     return emitOpError() << "expected result unit `" << expectedUnit << "`";
 
