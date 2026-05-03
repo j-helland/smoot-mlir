@@ -15,9 +15,21 @@ mlir-opt \
 """
 
 [tasks.test]
+depends = [
+    "test-compiler",
+    "test-python-frontend",
+]
+
+[tasks.test-compiler]
 depends = "build"
 run = """
 cmake \
   --build build-arm64 \
   --target check-units
+"""
+
+[tasks.test-python-frontend]
+dir = "frontend/python"
+run = """
+uv run -- pytest
 """

@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from .annotations import QuantityAnnotation, Unit
+from .diagnostics import UnitsCompileError
+from .verify import verify
+
+if TYPE_CHECKING:
+    from typing import Any
+
+
+class Quantity:
+    """TODO(jwh): document"""
+
+    def __class_getitem__(cls, params: Any) -> QuantityAnnotation:
+        return QuantityAnnotation.from_params(params)
+
+    def __mul__(self, other: Any) -> Quantity: ...
+
+
+__all__ = [
+    # verify
+    "Quantity",
+    "Unit",
+    "verify",
+    # diagnostics
+    "UnitsCompileError",
+]
