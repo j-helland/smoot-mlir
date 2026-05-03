@@ -20,6 +20,7 @@ set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 include(AddLLVM)
 include(TableGen)
+include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 include(AddMLIR)
@@ -33,4 +34,9 @@ include_directories(${PROJECT_BINARY_DIR}/lib/Dialect)
 
 add_subdirectory(lib)
 add_subdirectory(tools)
-add_subdirectory(tests)
+add_subdirectory(mlir-tests)
+add_subdirectory(unittests)
+
+add_custom_target(check-units
+  DEPENDS check-units-mlir check-units-cpp
+)

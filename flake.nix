@@ -22,8 +22,10 @@
         llvm.llvm
         llvm.mlir
         llvm.tblgen
+
         # testing
         pkgs.python3Packages.lit
+        pkgs.gtest
       ];
 
       shellHook = ''

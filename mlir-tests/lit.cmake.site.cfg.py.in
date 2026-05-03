@@ -11,4 +11,4 @@ import lit.llvm
 lit.llvm.initialize(lit_config, config)
 
 # Let the main config do the real work.
-lit_config.load_config(config, "@PROJECT_SOURCE_DIR@/tests/lit.cmake.cfg.py")
+lit_config.load_config(config, "@PROJECT_SOURCE_DIR@/mlir-tests/lit.cmake.cfg.py")

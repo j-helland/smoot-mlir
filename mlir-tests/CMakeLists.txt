@@ -24,9 +24,9 @@ message(STATUS "Using lit executable: ${LIT_EXECUTABLE}")
 set(LIT_ARGS "${LLVM_LIT_ARGS}")
 separate_arguments(LIT_ARGS)
 
-add_custom_target(check-mlir-units
+add_custom_target(check-units-mlir
   COMMAND ${LIT_EXECUTABLE} ${LIT_ARGS} ${CMAKE_CURRENT_BINARY_DIR}
   COMMENT "Running the MLIR units regression tests"
   USES_TERMINAL
 )
-add_dependencies(check-mlir-units ${MLIR_UNITS_TEST_DEPENDS})
+add_dependencies(check-units-mlir ${MLIR_UNITS_TEST_DEPENDS})
