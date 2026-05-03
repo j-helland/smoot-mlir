@@ -14,6 +14,7 @@ def UnitsDialect : Dialect {
   let cppNamespace = "::mlir::units";
 
   let useDefaultTypePrinterParser = 1;
+  let useDefaultAttributePrinterParser = 1;
 }
 
 #endif  // LIB_DIALECT_UNITS_UNITSDIALECT_TD_

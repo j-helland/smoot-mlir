@@ -4,6 +4,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/LogicalResult.h"
+#include <algorithm>
 
 namespace units = mlir::units;
 
@@ -60,9 +61,6 @@ llvm::LogicalResult units::ConstOp::verify() {
   if (!resultType)
     return emitOpError() << "result must be a quantity type";
 
-  if (resultType.getUnit().empty())
-    return emitOpError() << "unit must not be empty";
-
   if (getValueAttr().getType() != resultType.getElementType())
     return emitOpError() << "value attribute type must match result type";
 
@@ -105,12 +103,39 @@ void units::MulOp::print(mlir::OpAsmPrinter &printer) {
   printer.printType(getResult().getType());
 }
 
-static std::string combineUnits(llvm::StringRef lhs, llvm::StringRef rhs) {
-  if (lhs.empty())
-    return rhs.str();
-  if (rhs.empty())
-    return lhs.str();
-  return (lhs + "*" + rhs).str();
+static units::UnitAttr combineUnits(units::UnitAttr const &lhs,
+                                    units::UnitAttr const &rhs) {
+
+  const auto lhsDims = lhs.getDims();
+  const auto rhsDims = rhs.getDims();
+
+  const size_t size = std::max(lhsDims.size(), rhsDims.size());
+  llvm::SmallVector<int64_t> result;
+  result.reserve(size);
+
+  for (size_t i = 0; i < size; ++i) {
+    const int64_t lhsDim = i < lhsDims.size() ? lhsDims[i] : 0;
+    const int64_t rhsDim = i < rhsDims.size() ? rhsDims[i] : 0;
+    result.push_back(lhsDim + rhsDim);
+  }
+
+  while (!result.empty() && result.back() == 0)
+    result.pop_back();
+
+  return units::UnitAttr::get(lhs.getContext(), result);
+}
+
+static bool isSameUnit(units::UnitAttr const &lhs, units::UnitAttr const &rhs) {
+    const auto lhsDims = lhs.getDims();
+    const auto rhsDims = rhs.getDims();
+
+    const size_t size = std::max(lhsDims.size(), rhsDims.size());
+    for (size_t i = 0; i < size; ++i) {
+        const int64_t lhsDim = i < lhsDims.size() ? lhsDims[i] : 0;
+        const int64_t rhsDim = i < rhsDims.size() ? rhsDims[i] : 0;
+        if (lhsDim != rhsDim) return false;
+    }
+    return true;
 }
 
 void units::MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
@@ -134,9 +159,9 @@ llvm::LogicalResult units::MulOp::verify() {
       lhsType.getElementType() != resultType.getElementType())
     return emitOpError() << "operand and result element types must match";
 
-  const std::string expectedUnit =
+  const units::UnitAttr expectedUnit =
       combineUnits(lhsType.getUnit(), rhsType.getUnit());
-  if (resultType.getUnit() != expectedUnit)
+  if (!isSameUnit(resultType.getUnit(), expectedUnit))
     return emitOpError() << "expected result unit `" << expectedUnit << "`";
 
   return mlir::success();

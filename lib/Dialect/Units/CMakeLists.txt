@@ -13,10 +13,16 @@ mlir_tablegen(UnitsTypes.h.inc -gen-typedef-decls)
 mlir_tablegen(UnitsTypes.cpp.inc -gen-typedef-defs)
 add_public_tablegen_target(MLIRUnitsTypesIncGen)
 
+set(LLVM_TARGET_DEFINITIONS UnitsAttrs.td)
+mlir_tablegen(UnitsAttrs.h.inc -gen-attrdef-decls)
+mlir_tablegen(UnitsAttrs.cpp.inc -gen-attrdef-defs)
+add_public_tablegen_target(MLIRUnitsAttrsIncGen)
+
 add_mlir_dialect_library(MLIRUnits
   UnitsDialect.cpp
   UnitsOps.cpp
   UnitsTypes.cpp
+  UnitsAttrs.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${PROJECT_SOURCE_DIR}/lib/Dialect/Units
@@ -25,6 +31,7 @@ add_mlir_dialect_library(MLIRUnits
   MLIRUnitsDialectIncGen
   MLIRUnitsOpsIncGen
   MLIRUnitsTypesIncGen
+  MLIRUnitsAttrsIncGen
 
   LINK_LIBS PUBLIC
   MLIRIR

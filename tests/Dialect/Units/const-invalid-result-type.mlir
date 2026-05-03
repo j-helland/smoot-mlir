@@ -2,5 +2,5 @@
 
 module {
   // expected-error @below {{expected floating-point result type}}
-  %0 = units.const 4.2 : !units.quantity<i32, "m">
+  %0 = units.const 4.2 : !units.quantity<i32, #units.unit<dims = [1]>>
 }
