@@ -17,6 +17,7 @@ class Quantity:
         return QuantityAnnotation.from_params(params)
 
     def __mul__(self, other: Any) -> Quantity: ...
+    def __add__(self, other: Any) -> Quantity: ...
 
 
 __all__ = [

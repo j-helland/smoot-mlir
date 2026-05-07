@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass
-from typing import Annotated, Any, TypeAlias, get_args, get_origin
+from typing import (
+    Annotated,
+    Any,
+    TypeAlias,
+    get_args,
+    get_origin,
+)
 
 Dimensionality: TypeAlias = tuple[int, ...]
 
