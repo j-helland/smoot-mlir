@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, get_type_hints
+from types import FunctionType
+from typing import get_type_hints
 
 from units.annotations import (
     QuantityTypeInfo,
@@ -16,7 +17,7 @@ class FunctionSignature:
     result: QuantityTypeInfo
 
     @classmethod
-    def extract(cls, fn: Callable) -> FunctionSignature:
+    def extract(cls, fn: FunctionType) -> FunctionSignature:
         # Fully handle `Annotated[...]` metadata.
         annotations = get_type_hints(fn, include_extras=True)
 

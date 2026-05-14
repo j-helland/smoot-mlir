@@ -1,0 +1,28 @@
+[tools]
+ruff = "0.15.12"
+ty = "0.0.35"
+
+[settings]
+experimental = true
+
+[tasks.lint]
+depends = [
+    "lint:ruff-check",
+    "lint:ruff-format --check",
+    "lint:typecheck",
+]
+
+[tasks."lint:ruff-check"]
+usage = """
+flag "--fix" help="Auto-apply safe fixes."
+"""
+run = "ruff check ${usage_fix:+--fix}"
+
+[tasks."lint:ruff-format"]
+usage = """
+flag "--check" help="Only check if files are already formatted."
+"""
+run = "ruff format ${usage_check:+--check}"
+
+[tasks."lint:typecheck"]
+run = "ty check"

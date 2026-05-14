@@ -5,6 +5,7 @@ import inspect
 import itertools
 import textwrap
 from dataclasses import dataclass
+from types import FunctionType
 from typing import Callable, Final, TypeAlias
 
 from units.annotations import Dimensionality, QuantityTypeInfo, UnitInfo
@@ -25,7 +26,7 @@ EnvironmentType: TypeAlias = dict[str, QuantityTypeInfo]
 UNKNOWN_SOURCE_FILE: Final[str] = "<unknown>"
 
 
-def lower_function(fn: Callable) -> Function:
+def lower_function(fn: FunctionType) -> Function:
     signature = FunctionSignature.extract(fn)
     function_def = _get_function_def(fn)
     filename = inspect.getsourcefile(fn) or UNKNOWN_SOURCE_FILE
