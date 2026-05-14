@@ -5,6 +5,9 @@ ty = "0.0.35"
 [settings]
 experimental = true
 
+[tasks.test]
+run = "uv run -- pytest"
+
 [tasks.lint]
 depends = [
     "lint:ruff-check",

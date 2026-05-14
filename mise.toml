@@ -30,6 +30,4 @@ cmake \
 
 [tasks.test-python-frontend]
 dir = "frontend/python"
-run = """
-uv run -- pytest
-"""
+run = "mise run test"
