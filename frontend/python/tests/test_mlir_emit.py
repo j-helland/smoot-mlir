@@ -1,4 +1,3 @@
-
 from typing import Callable
 import pytest
 from units import Quantity, Unit
@@ -25,7 +24,7 @@ def func_add(
     (
         func_mul,
         func_add,
-    )
+    ),
 )
 def test_mlir_emitter(func: Callable, snapshot: object):
     fn = lower_function(func)

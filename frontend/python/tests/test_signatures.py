@@ -6,6 +6,7 @@ from units.signatures import FunctionSignature
 
 def test_extract_signature_from_quantity():
     """Verifies function signatures using `Quantity` type annotations."""
+
     def distance(
         velocity: Quantity[float, Unit("meter / second")],
         # `Annotated` is also supported
@@ -27,6 +28,7 @@ def test_extract_signature_from_quantity():
 
 def test_extract_signature_from_annotated():
     """Verifies function signatures using `Annotated` type annotations."""
+
     def distance(
         # Both `Unit` and `str` are supported in `Annotated` units arg.
         velocity: Annotated[float, Unit("meter / second")],
