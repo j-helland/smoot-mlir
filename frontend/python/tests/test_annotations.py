@@ -1,7 +1,7 @@
 import pytest
 
 from units import Quantity, Unit
-from units.annotations import QuantityAnnotation, QuantityTypeInfo, UnitInfo
+from units.annotations import QuantityAnnotation, QuantityTypeInfo
 
 
 def test_annotation_instantiation():
@@ -26,14 +26,15 @@ def test_annotation_instantiation():
 def test_quantity_info_parsing():
     annotation = Quantity[float, Unit("meter / second")]
     info = annotation.to_info()
-
     assert info == QuantityTypeInfo(
         element="f64",
-        unit=UnitInfo(
-            dims=(1, -1),
-        ),
+        unit=Unit("meter / second"),
     )
 
+    # The frontend does not perform typechecking / type inference.
     annotation = Quantity[float, Unit("definitely not a unit expression")]
-    with pytest.raises(TypeError):
-        annotation.to_info()
+    info = annotation.to_info()
+    assert info == QuantityTypeInfo(
+        element="f64",
+        unit=Unit("definitely not a unit expression"),
+    )

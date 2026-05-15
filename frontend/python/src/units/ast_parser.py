@@ -2,16 +2,21 @@ from __future__ import annotations
 
 import ast
 import inspect
-import itertools
 import textwrap
 from dataclasses import dataclass
+from numbers import Number
 from types import FunctionType
 from typing import Callable, Final, TypeAlias
 
-from units import UnitsCompileError
-from units.annotations import Dimensionality, QuantityTypeInfo, UnitInfo
+from units import Unit, UnitsCompileError
+from units.annotations import (
+    QuantityTypeInfo,
+    parse_quantity_annotation,
+)
 from units.ir import (
+    Assign,
     Binary,
+    Constant,
     Expr,
     Function,
     Name,
@@ -23,7 +28,13 @@ from units.ir import (
 )
 from units.signatures import FunctionSignature
 
-EnvironmentType: TypeAlias = dict[str, QuantityTypeInfo]
+
+@dataclass(frozen=True, kw_only=True)
+class Symbol:
+    type: QuantityTypeInfo | None = None
+
+
+SymbolTableType: TypeAlias = dict[str, Symbol]
 
 UNKNOWN_SOURCE_FILE: Final[str] = "<unknown>"
 
@@ -43,13 +54,18 @@ def _transform_function(fn: FunctionType) -> Function:
     _, start_line = inspect.getsourcelines(fn)
     lineno_offset = start_line - 1  # inspect returns 1-based
 
-    if len(function_def.body) != 1 or not isinstance(function_def.body[0], ast.Return):
-        msg = "only functions with a single return statement are supported"
-        raise TypeError(msg)
-
-    environment = {name: type_info for name, type_info in signature.parameters}
+    symbol_table = {
+        name: Symbol(
+            type=decl_type,
+        )
+        for name, decl_type in signature.parameters
+    }
     span_ctx = SourceSpan.Ctx(filename=filename, lineno_offset=lineno_offset)
-    ctx = _AstTransformCtx(environment=environment, span=span_ctx)
+    ctx = _AstTransformCtx(
+        symbol_table=symbol_table,
+        span=span_ctx,
+        globals=fn.__globals__,
+    )
 
     body = _transform_body(function_def, ctx)
     return Function(
@@ -71,20 +87,17 @@ def _get_function_def(fn: Callable) -> ast.FunctionDef:
     return function_defs[0]
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class _AstTransformCtx:
-    environment: EnvironmentType
+    symbol_table: SymbolTableType
     span: SourceSpan.Ctx
+    globals: dict[str, object]
 
 
 def _transform_body(
     function_def: ast.FunctionDef,
     ctx: _AstTransformCtx,
 ) -> tuple[Stmt, ...]:
-    if not function_def.body:
-        msg = "function body must not be empty"
-        raise TypeError(msg)
-
     statements = tuple(_transform_stmt(stmt, ctx) for stmt in function_def.body)
 
     if not any(isinstance(statement, Return) for statement in statements):
@@ -99,13 +112,42 @@ def _transform_stmt(
     ctx: _AstTransformCtx,
 ) -> Stmt:
     match node:
-        case ast.Return(value=value_node):
-            if value_node is None:
+        case ast.Assign([ast.Name(id=name)], value, _):
+            expr = _transform_expr(value, ctx)
+            ctx.symbol_table[name] = Symbol(type=expr.type)
+            return Assign(
+                name=name,
+                expr=expr,
+                span=SourceSpan.from_ast(node=node, ctx=ctx.span),
+            )
+
+        case ast.AnnAssign(ast.Name(id=name), annotation, value, simple):
+            if simple != 1:
+                msg = "only simple annotated assignments are supported"
+                raise TypeError(msg)
+
+            if value is None:
+                msg = "annotated assignments must include a value"
+                raise TypeError(msg)
+
+            decl_type = _transform_annotation(annotation, ctx)
+            expr = _transform_expr(value, ctx)
+            ctx.symbol_table[name] = Symbol(type=expr.type)
+
+            return Assign(
+                name=name,
+                expr=expr,
+                declared_type=decl_type,
+                span=SourceSpan.from_ast(node=node, ctx=ctx.span),
+            )
+
+        case ast.Return(value):
+            if value is None:
                 msg = "return statement must return a value"
                 raise TypeError(msg)
 
             return Return(
-                expr=_transform_expr(value_node, ctx),
+                expr=_transform_expr(value, ctx),
                 span=SourceSpan.from_ast(node=node, ctx=ctx.span),
             )
 
@@ -126,10 +168,21 @@ def _transform_expr(
 
     match node:
         case ast.Name(id=name):
-            if (type_info := ctx.environment.get(name)) is None:
+            if name not in ctx.symbol_table:
                 msg = f"unknown variable {name!r}"
                 raise TypeError(msg) from None
-            return Name(name=name, type=type_info, span=span)
+
+            return Name(name=name, span=span)
+
+        case ast.Constant(value):
+            if isinstance(value, bool) or not isinstance(value, Number):
+                msg = f"unsupported constant type `{type(value)}` with value: {value!r}"
+                raise TypeError(msg)
+
+            return Constant(
+                value=value,
+                span=span,
+            )
 
         case ast.BinOp(left=lhs_node, op=ast.Mult(), right=rhs_node):
             lhs = _transform_expr(lhs_node, ctx)
@@ -138,7 +191,6 @@ def _transform_expr(
                 op=Operator.mul,
                 lhs=lhs,
                 rhs=rhs,
-                type=_mul_type(lhs.type, rhs.type),
                 span=span,
             )
 
@@ -149,7 +201,6 @@ def _transform_expr(
                 op=Operator.add,
                 lhs=lhs,
                 rhs=rhs,
-                type=_add_type(lhs.type, rhs.type),
                 span=span,
             )
 
@@ -158,32 +209,64 @@ def _transform_expr(
             raise TypeError(msg)
 
 
-def _mul_type(lhs: QuantityTypeInfo, rhs: QuantityTypeInfo) -> QuantityTypeInfo:
-    return QuantityTypeInfo(
-        element=_combine_element_types(lhs, rhs),
-        unit=UnitInfo(dims=_add_dims(lhs.unit.dims, rhs.unit.dims)),
-    )
+def _transform_annotation(
+    annotation: ast.expr,
+    ctx: _AstTransformCtx,
+) -> QuantityTypeInfo:
+    expr = ast.Expression(body=annotation)
+    ast.fix_missing_locations(expr)
+    value = eval(compile(expr, ctx.span.filename, "eval"), ctx.globals)
+    return parse_quantity_annotation(value)
 
 
-def _combine_element_types(lhs: QuantityTypeInfo, rhs: QuantityTypeInfo) -> str:
-    if lhs.element != rhs.element:
-        msg = f"Mixed element types are not supported. lhs={lhs.element} rhs={rhs.element}"
-        raise TypeError(msg)
-    return lhs.element
+def _parse_quantity_annotation_ast(annotation: ast.expr) -> QuantityTypeInfo:
+    match annotation:
+        case ast.Subscript(
+            value=ast.Name(id="Quantity"),
+            slice=ast.Tuple(elts=[element_node, unit_node]),
+        ):
+            return QuantityTypeInfo(
+                element=_parse_element_annotation_ast(element_node),
+                unit=_parse_unit_annotation_ast(unit_node),
+            )
+
+        case ast.Subscript(
+            value=ast.Name(id="Annotated"),
+            slice=ast.Tuple(elts=[element_node, unit_node]),
+        ):
+            return QuantityTypeInfo(
+                element=_parse_element_annotation_ast(element_node),
+                unit=_parse_unit_annotation_ast(unit_node),
+            )
+
+        case _:
+            msg = f"unsupported quantity annotation: {ast.dump(annotation)}"
+            raise TypeError(msg)
 
 
-def _add_type(lhs: QuantityTypeInfo, _rhs: QuantityTypeInfo) -> QuantityTypeInfo:
-    return lhs
+def _parse_element_annotation_ast(node: ast.expr) -> str:
+    # TODO(jwh): flesh out the supported value types
+    match node:
+        case ast.Name(id="float"):
+            return "f64"
+
+        case _:
+            msg = f"unsupported quantity element type: {ast.dump(node)}"
+            raise TypeError(msg)
 
 
-def _add_dims(lhs: Dimensionality, rhs: Dimensionality) -> Dimensionality:
-    dims = tuple((ld + rd for ld, rd in itertools.zip_longest(lhs, rhs, fillvalue=0)))
-    return _canonicalize_dims(dims)
+def _parse_unit_annotation_ast(node: ast.expr) -> Unit:
+    match node:
+        case ast.Call(
+            func=ast.Name(id="Unit"),
+            args=[ast.Constant(value=str(expression))],
+            keywords=[],
+        ):
+            return Unit(expression)
 
+        case ast.Constant(value=str(expression)):
+            return Unit(expression)
 
-def _canonicalize_dims(dims: Dimensionality) -> Dimensionality:
-    # Drop trailing zero dimensions
-    idx = len(dims) - 1
-    while idx >= 0 and dims[idx] == 0:
-        idx -= 1
-    return dims[: idx + 1]
+        case _:
+            msg = f"unsupported unit annotation: {ast.dump(node)}"
+            raise TypeError(msg)

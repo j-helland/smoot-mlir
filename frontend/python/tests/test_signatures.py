@@ -1,6 +1,6 @@
 from typing import Annotated
 from units import Quantity, Unit
-from units.annotations import QuantityTypeInfo, UnitInfo
+from units.annotations import QuantityTypeInfo
 from units.signatures import FunctionSignature
 
 
@@ -19,10 +19,10 @@ def test_extract_signature_from_quantity():
     assert sig == FunctionSignature(
         name="distance",
         parameters=(
-            ("velocity", QuantityTypeInfo(element="f64", unit=UnitInfo(dims=(1, -1)))),
-            ("dt", QuantityTypeInfo(element="f64", unit=UnitInfo(dims=(0, 1)))),
+            ("velocity", QuantityTypeInfo(element="f64", unit=Unit("meter / second"))),
+            ("dt", QuantityTypeInfo(element="f64", unit=Unit("second"))),
         ),
-        result=QuantityTypeInfo(element="f64", unit=UnitInfo(dims=(1,))),
+        result=QuantityTypeInfo(element="f64", unit=Unit("meter")),
     )
 
 
@@ -41,8 +41,8 @@ def test_extract_signature_from_annotated():
     assert sig == FunctionSignature(
         name="distance",
         parameters=(
-            ("velocity", QuantityTypeInfo(element="f64", unit=UnitInfo(dims=(1, -1)))),
-            ("dt", QuantityTypeInfo(element="f64", unit=UnitInfo(dims=(0, 1)))),
+            ("velocity", QuantityTypeInfo(element="f64", unit=Unit("meter / second"))),
+            ("dt", QuantityTypeInfo(element="f64", unit=Unit("second"))),
         ),
-        result=QuantityTypeInfo(element="f64", unit=UnitInfo(dims=(1,))),
+        result=QuantityTypeInfo(element="f64", unit=Unit("meter")),
     )

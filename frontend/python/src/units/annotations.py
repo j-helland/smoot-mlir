@@ -14,22 +14,14 @@ Dimensionality: TypeAlias = tuple[int, ...]
 
 
 @dataclass(frozen=True)
-class UnitInfo:
-    dims: Dimensionality
-
-
-@dataclass(frozen=True)
 class QuantityTypeInfo:
     element: str
-    unit: UnitInfo
+    unit: Unit
 
 
 @dataclass(frozen=True)
 class Unit:
     expression: str
-
-    def to_info(self) -> UnitInfo:
-        return _parse_unit_expr(self.expression)
 
 
 @dataclass(frozen=True)
@@ -68,7 +60,7 @@ def parse_quantity_annotation(annotation: Any) -> QuantityTypeInfo:
 
     (
         element_type,
-        unit_type,
+        unit,
         *metadata,
     ) = get_args(annotation)
 
@@ -78,7 +70,7 @@ def parse_quantity_annotation(annotation: Any) -> QuantityTypeInfo:
 
     return QuantityTypeInfo(
         element=_parse_element_type(element_type),
-        unit=_parse_unit_type(unit_type),
+        unit=_parse_unit_type(unit),
     )
 
 
@@ -86,7 +78,7 @@ def parse_quantity_annotation(annotation: Any) -> QuantityTypeInfo:
 def _(annotation: QuantityAnnotation) -> QuantityTypeInfo:
     return QuantityTypeInfo(
         element=_parse_element_type(annotation.element_type),
-        unit=annotation.unit.to_info(),
+        unit=annotation.unit,
     )
 
 
@@ -100,32 +92,16 @@ def _parse_element_type(element: type) -> str:
 
 
 @functools.singledispatch
-def _parse_unit_type(unit: Any) -> UnitInfo:
-    msg = f"Cannot interpret {unit!r} with type {type(unit)} as a unit"
+def _parse_unit_type(unit: Any) -> Unit:
+    msg = f"cannot interpret {unit!r} with type {type(unit)} as a unit"
     raise TypeError(msg)
 
 
 @_parse_unit_type.register
-def _(unit: str) -> UnitInfo:
-    return _parse_unit_expr(unit)
+def _(unit: str) -> Unit:
+    return Unit(unit)
 
 
 @_parse_unit_type.register
-def _(unit: Unit) -> UnitInfo:
-    return unit.to_info()
-
-
-def _parse_unit_expr(expression: str) -> UnitInfo:
-    # TODO(jwh): mocked parser for now
-    mapping: dict[str, Dimensionality] = {
-        "meter": (1,),
-        "second": (0, 1),
-        "meter / second": (1, -1),
-        "dimensionless": (),
-    }
-
-    if (dims := mapping.get(expression)) is None:
-        msg = f"unsupported unit expression {expression!r}"
-        raise TypeError(msg) from None
-
-    return UnitInfo(dims=dims)
+def _(unit: Unit) -> Unit:
+    return unit

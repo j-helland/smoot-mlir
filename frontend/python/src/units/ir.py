@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 from enum import Enum, auto
+from numbers import Number
 from typing import TypeVar
 
 from typing_extensions import dataclass_transform
@@ -68,13 +69,12 @@ class Stmt(Node):
 
 @ir_model
 class Expr(Node):
-    type: QuantityTypeInfo
+    type: QuantityTypeInfo | None = None
 
 
 @ir_model
 class Name(Expr):
     name: str
-    type: QuantityTypeInfo
 
 
 class Operator(Enum):
@@ -87,7 +87,6 @@ class Binary(Expr):
     op: Operator
     lhs: Expr
     rhs: Expr
-    type: QuantityTypeInfo
 
 
 @ir_model
@@ -99,3 +98,15 @@ class Return(Stmt):
 class Function(Stmt):
     signature: FunctionSignature
     body: tuple[Stmt, ...]
+
+
+@ir_model
+class Constant(Expr):
+    value: Number
+
+
+@ir_model
+class Assign(Stmt):
+    name: str
+    expr: Expr
+    declared_type: QuantityTypeInfo | None = None
