@@ -174,6 +174,6 @@ def _add_dims(lhs: Dimensionality, rhs: Dimensionality) -> Dimensionality:
 def _canonicalize_dims(dims: Dimensionality) -> Dimensionality:
     # Drop trailing zero dimensions
     idx = len(dims) - 1
-    while dims and dims[idx] == 0:
+    while idx >= 0 and dims[idx] == 0:
         idx -= 1
     return dims[: idx + 1]
