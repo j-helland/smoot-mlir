@@ -33,3 +33,10 @@ usage = """
 flag "--fix" help="Auto-apply safe fixes."
 """
 run = "ty check ${usage_fix:+--fix}"
+
+[tasks.fix]
+depends = [
+    "lint:ruff-format",
+    "lint:ruff-check --fix",
+    "lint:typecheck --fix"
+]

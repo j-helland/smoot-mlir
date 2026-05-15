@@ -18,7 +18,7 @@ def test_run_units_opt(snapshot: Snapshot):
 
     func_lowered = lower_function(distance)
     units_mlir = emit_module(func_lowered)
-    units_opt = UnitsOpt()
+    units_opt = UnitsOpt.default()
     mlir = units_opt.run_units_opt(units_mlir)
 
     assert mlir == snapshot
@@ -35,13 +35,13 @@ def test_run_units_opt_invalid():
 
     func_lowered = lower_function(distance_invalid)
     units_mlir = emit_module(func_lowered)
-    units_opt = UnitsOpt()
+    units_opt = UnitsOpt.default()
 
     with pytest.raises(UnitsCompileError):
         units_opt.run_units_opt(units_mlir)
 
 
 def test_run_units_opt_not_mlir():
-    units_opt = UnitsOpt()
+    units_opt = UnitsOpt.default()
     with pytest.raises(UnitsCompileError):
         units_opt.run_units_opt("hello")

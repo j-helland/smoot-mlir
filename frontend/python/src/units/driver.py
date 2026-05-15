@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import functools
 import shutil
 import subprocess
 from pathlib import Path
@@ -29,6 +32,12 @@ class UnitsOpt(BaseSettings):
 
     units_opt: CommandExistsField = "units-opt"
     """Reads from UNITS_OPT env var."""
+
+    # NOTE(jwh): class-level caching does _not_ have the memory-leak problems of instance-level caching.
+    @classmethod
+    @functools.lru_cache(maxsize=1)
+    def default(cls) -> UnitsOpt:
+        return cls()
 
     def run_units_opt(self, input: str) -> str:
         """Run units-mlir opt passes and return the emitted IR."""
