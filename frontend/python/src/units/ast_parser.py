@@ -8,12 +8,14 @@ from dataclasses import dataclass
 from types import FunctionType
 from typing import Callable, Final, TypeAlias
 
+from units import UnitsCompileError
 from units.annotations import Dimensionality, QuantityTypeInfo, UnitInfo
 from units.ir import (
     Binary,
     Expr,
     Function,
     Name,
+    Node,
     Operator,
     Return,
     SourceSpan,
@@ -26,7 +28,15 @@ EnvironmentType: TypeAlias = dict[str, QuantityTypeInfo]
 UNKNOWN_SOURCE_FILE: Final[str] = "<unknown>"
 
 
-def lower_function(fn: FunctionType) -> Function:
+def transform_ast(value: object) -> Node:
+    match value:
+        case FunctionType():
+            return _transform_function(value)
+        case _:
+            raise UnitsCompileError from NotImplementedError(type(value))
+
+
+def _transform_function(fn: FunctionType) -> Function:
     signature = FunctionSignature.extract(fn)
     function_def = _get_function_def(fn)
     filename = inspect.getsourcefile(fn) or UNKNOWN_SOURCE_FILE
@@ -39,9 +49,9 @@ def lower_function(fn: FunctionType) -> Function:
 
     environment = {name: type_info for name, type_info in signature.parameters}
     span_ctx = SourceSpan.Ctx(filename=filename, lineno_offset=lineno_offset)
-    ctx = _LowerCtx(environment=environment, span=span_ctx)
+    ctx = _AstTransformCtx(environment=environment, span=span_ctx)
 
-    body = _lower_body(function_def, ctx)
+    body = _transform_body(function_def, ctx)
     return Function(
         signature=signature,
         body=body,
@@ -62,20 +72,20 @@ def _get_function_def(fn: Callable) -> ast.FunctionDef:
 
 
 @dataclass(frozen=True, slots=True)
-class _LowerCtx:
+class _AstTransformCtx:
     environment: EnvironmentType
     span: SourceSpan.Ctx
 
 
-def _lower_body(
+def _transform_body(
     function_def: ast.FunctionDef,
-    ctx: _LowerCtx,
+    ctx: _AstTransformCtx,
 ) -> tuple[Stmt, ...]:
     if not function_def.body:
         msg = "function body must not be empty"
         raise TypeError(msg)
 
-    statements = tuple(_lower_stmt(stmt, ctx) for stmt in function_def.body)
+    statements = tuple(_transform_stmt(stmt, ctx) for stmt in function_def.body)
 
     if not any(isinstance(statement, Return) for statement in statements):
         msg = "function must contain a return statement"
@@ -84,9 +94,9 @@ def _lower_body(
     return statements
 
 
-def _lower_stmt(
+def _transform_stmt(
     node: ast.stmt,
-    ctx: _LowerCtx,
+    ctx: _AstTransformCtx,
 ) -> Stmt:
     match node:
         case ast.Return(value=value_node):
@@ -95,7 +105,7 @@ def _lower_stmt(
                 raise TypeError(msg)
 
             return Return(
-                expr=_lower_expr(value_node, ctx),
+                expr=_transform_expr(value_node, ctx),
                 span=SourceSpan.from_ast(node=node, ctx=ctx.span),
             )
 
@@ -104,9 +114,9 @@ def _lower_stmt(
             raise TypeError(msg)
 
 
-def _lower_expr(
+def _transform_expr(
     node: ast.expr | None,
-    ctx: _LowerCtx,
+    ctx: _AstTransformCtx,
 ) -> Expr:
     if node is None:
         msg = "return statement must return a non-`None` value."
@@ -122,8 +132,8 @@ def _lower_expr(
             return Name(name=name, type=type_info, span=span)
 
         case ast.BinOp(left=lhs_node, op=ast.Mult(), right=rhs_node):
-            lhs = _lower_expr(lhs_node, ctx)
-            rhs = _lower_expr(rhs_node, ctx)
+            lhs = _transform_expr(lhs_node, ctx)
+            rhs = _transform_expr(rhs_node, ctx)
             return Binary(
                 op=Operator.mul,
                 lhs=lhs,
@@ -133,8 +143,8 @@ def _lower_expr(
             )
 
         case ast.BinOp(left=lhs_node, op=ast.Add(), right=rhs_node):
-            lhs = _lower_expr(lhs_node, ctx)
-            rhs = _lower_expr(rhs_node, ctx)
+            lhs = _transform_expr(lhs_node, ctx)
+            rhs = _transform_expr(rhs_node, ctx)
             return Binary(
                 op=Operator.add,
                 lhs=lhs,

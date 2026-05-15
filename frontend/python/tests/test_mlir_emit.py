@@ -1,10 +1,10 @@
+from units.ast_parser import transform_ast
 from types import FunctionType
 
 import pytest
 
 from units import Quantity, Unit
-from units.ast_parser import lower_function
-from units.mlir_emit import emit_module
+from units.mlir_emit import emit_mlir
 
 
 def func_mul(
@@ -29,7 +29,7 @@ def func_add(
     ),
 )
 def test_mlir_emitter(func: FunctionType, snapshot: object):
-    fn = lower_function(func)
-    mlir = emit_module(fn)
+    fn = transform_ast(func)
+    mlir = emit_mlir(fn)
 
     assert mlir == snapshot

@@ -1,18 +1,19 @@
+from units.ast_parser import transform_ast
 from units import Quantity, Unit
-from units.ast_parser import lower_function
-from units.ir import Binary, Name, Operator, Return
+from units.ir import Binary, Name, Operator, Return, Function
 
 
-def test_lower_return_mul():
+def test_transform_return_mul():
     def distance(
         velocity: Quantity[float, Unit("meter / second")],
         dt: Quantity[float, Unit("second")],
     ) -> Quantity[float, Unit("meter")]:
         return velocity * dt
 
-    fn = lower_function(distance)
+    fn_ast = transform_ast(distance)
+    assert isinstance(fn_ast, Function)
 
-    body, *others = fn.body
+    body, *others = fn_ast.body
     assert not others
     assert isinstance(body, Return)
     assert isinstance(body.expr, Binary)
@@ -23,6 +24,6 @@ def test_lower_return_mul():
     assert isinstance(body.expr.rhs, Name)
     assert body.expr.rhs.name == "dt"
 
-    assert fn.span is not None
-    assert fn.span.line == 7
-    assert fn.span.end_line == 11
+    assert fn_ast.span is not None
+    assert fn_ast.span.line == 7
+    assert fn_ast.span.end_line == 11

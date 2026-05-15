@@ -1,15 +1,16 @@
 from __future__ import annotations
+from units import UnitsCompileError
 
 from dataclasses import dataclass, field
 
 from units.annotations import QuantityTypeInfo, UnitInfo
-from units.ir import Binary, Expr, Function, Name, Operator, Return, Stmt
+from units.ir import Binary, Expr, Function, Name, Operator, Return, Stmt, Node
 
 
-def emit_module(function: Function) -> str:
+def emit_mlir(node: Node) -> str:
     """Emit Units MLIR dialect."""
     emitter = MlirEmitter()
-    return emitter.emit_module(function)
+    return emitter.emit_module(node)
 
 
 @dataclass(slots=True)
@@ -18,11 +19,18 @@ class MlirEmitter:
     lines: list[str] = field(default_factory=list)
     values: dict[Expr, str] = field(default_factory=dict)
 
-    def emit_module(self, function: Function) -> str:
+    def emit_module(self, node: Node) -> str:
         self.lines.append("module {")
-        self.emit_function(function)
+        self.emit_node(node)
         self.lines.append("}")
         return "\n".join(self.lines) + "\n"
+
+    def emit_node(self, node: Node) -> None:
+        match node:
+            case Function():
+                self.emit_function(node)
+            case _:
+                raise UnitsCompileError from NotImplementedError(type(node))
 
     def emit_function(self, function: Function) -> None:
         sig = function.signature

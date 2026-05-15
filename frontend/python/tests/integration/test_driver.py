@@ -1,10 +1,10 @@
+from units.ast_parser import transform_ast
 import pytest
 from syrupy.data import Snapshot
 
 from units import Quantity, Unit, UnitsCompileError
-from units.ast_parser import lower_function
 from units.driver import UnitsOpt
-from units.mlir_emit import emit_module
+from units.mlir_emit import emit_mlir
 
 
 def test_run_units_opt(snapshot: Snapshot):
@@ -16,8 +16,8 @@ def test_run_units_opt(snapshot: Snapshot):
     ) -> Quantity[float, Unit("meter")]:
         return velocity * dt
 
-    func_lowered = lower_function(distance)
-    units_mlir = emit_module(func_lowered)
+    func_ast = transform_ast(distance)
+    units_mlir = emit_mlir(func_ast)
     units_opt = UnitsOpt.default()
     mlir = units_opt.run_units_opt(units_mlir)
 
@@ -33,8 +33,8 @@ def test_run_units_opt_invalid():
     ) -> Quantity[float, Unit("meter")]:
         return velocity + dt
 
-    func_lowered = lower_function(distance_invalid)
-    units_mlir = emit_module(func_lowered)
+    func_ast = transform_ast(distance_invalid)
+    units_mlir = emit_mlir(func_ast)
     units_opt = UnitsOpt.default()
 
     with pytest.raises(UnitsCompileError):
