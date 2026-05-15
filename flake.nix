@@ -17,7 +17,10 @@
       packages = [
         # dev env
         pkgs.git
+        pkgs.fish
+        pkgs.mise
         pkgs.starship
+        pkgs.usage
 
         # MLIR
         pkgs.cmake
@@ -41,10 +44,9 @@
 
         export PATH="${llvm.mlir}/bin:${llvm.llvm}/bin:${llvm.clang}/bin:$PATH"
 
-        if [ -n "$BASH_VERSION" ]; then
-          eval "$(starship init bash)"
-        elif [ -n "$ZSH_VERSION" ]; then
-          eval "$(starship init zsh)"
+        if [ -z "$IN_NIX_FISH" ] && [ -t 1 ]; then
+          export IN_NIX_FISH=1
+          exec fish -C 'starship init fish | source; mise completion fish | source'
         fi
       '';
     };
