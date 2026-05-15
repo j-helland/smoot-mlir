@@ -7,6 +7,7 @@ from units.ir import Binary, Expr, Function, Name, Operator, Return, Stmt
 
 
 def emit_module(function: Function) -> str:
+    """Emit Units MLIR dialect."""
     emitter = MlirEmitter()
     return emitter.emit_module(function)
 

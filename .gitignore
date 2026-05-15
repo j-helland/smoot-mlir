@@ -3,3 +3,5 @@ docs/
 
 # editors
 .zed/
+# CocoIndex Code (ccc)
+/.cocoindex_code/

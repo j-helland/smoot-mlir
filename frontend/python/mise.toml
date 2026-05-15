@@ -6,6 +6,7 @@ ty = "0.0.35"
 experimental = true
 
 [tasks.test]
+depends = ["build-backend"]
 run = "uv run -- pytest"
 
 [tasks.lint]
@@ -28,4 +29,7 @@ flag "--check" help="Only check if files are already formatted."
 run = "ruff format ${usage_check:+--check}"
 
 [tasks."lint:typecheck"]
-run = "ty check"
+usage = """
+flag "--fix" help="Auto-apply safe fixes."
+"""
+run = "ty check ${usage_fix:+--fix}"

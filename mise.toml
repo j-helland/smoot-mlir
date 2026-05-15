@@ -1,12 +1,29 @@
-[tasks.build]
+[env]
+UNITS_OPT = "{{config_root}}/build-arm64/tools/units-opt"
+
+[tasks.build-backend]
 run = """
 cmake -S . -B build-arm64 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build-arm64
+cmake -E touch build-arm64/.mise-build.stamp
 """
+# Only execute the task if any of the following have changed:
+sources = [
+    "CMakeLists.txt",
+    "tools/**/*.h",
+    "tools/**/*.td",
+    "tools/**/*.cpp",
+    "tools/**/CMakeLists.txt",
+    "lib/**/*.h",
+    "lib/**/*.td",
+    "lib/**/*.cpp",
+    "lib/**/CMakeLists.txt",
+]
+outputs = ["build-arm64/.mise-build.stamp"]
 
 [tasks.run]
-depends = "build"
+depends = "build-backend"
 run = """
 mlir-opt \
   --load-pass-plugin=build-arm64/UnitVerifyPass.dylib \
@@ -16,12 +33,12 @@ mlir-opt \
 
 [tasks.test]
 depends = [
-    "test-compiler",
+    "test-backend",
     "test-python-frontend",
 ]
 
-[tasks.test-compiler]
-depends = "build"
+[tasks.test-backend]
+depends = "build-backend"
 run = """
 cmake \
   --build build-arm64 \
