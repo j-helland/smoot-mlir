@@ -36,4 +36,5 @@ add_mlir_dialect_library(MLIRUnits
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRSupport
+  units_rs
 )

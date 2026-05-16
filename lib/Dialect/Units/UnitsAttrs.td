@@ -8,7 +8,7 @@ def Units_UnitAttr : AttrDef<UnitsDialect, "Unit"> {
   let mnemonic = "unit";
   let summary = "canonical physical unit attribute";
 
-  let parameters = (ins StringRefParameter<"unit expresion"> : $expression);
+  let parameters = (ins StringRefParameter<"unit expresion">:$expression);
 
   let builders = [AttrBuilder<(ins "llvm::StringRef":$expression), [{
             return $_get($_ctxt, expression);
