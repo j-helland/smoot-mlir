@@ -1,0 +1,50 @@
+[tools]
+# NOTE(jwh): Rust toolchain is provided by flake.nix in the project root.
+"cargo:cargo-sort" = "latest"
+"cargo:cargo-shear" = "latest"
+
+[settings]
+experimental = true
+
+[tasks.test]
+description = "Run rust tests"
+run = "cargo test --all-targets --all-features"
+
+[tasks.lint]
+description = "Run rust linting tasks"
+depends = [
+    "//units-rs:lint:cargo-fmt --check",
+    "//units-rs:lint:cargo-shear",
+    "//units-rs:lint:cargo-clippy",
+]
+
+[tasks.build]
+description = "Build the Rust static library"
+run = "cargo build --release"
+
+[tasks.fix]
+description = "Apply auto Rust code fixes"
+depends = [
+    "//units-rs:lint:cargo-fmt",
+    "//units-rs:lint:cargo-shear --fix",
+]
+
+[tasks."lint:cargo-clippy"]
+description = "Clippy linting of Rust code"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks."lint:cargo-fmt"]
+usage = """
+flag "--check" help="Fail if code is not formatted"
+"""
+run = """
+cargo fmt ${usage_check:+--check}
+cargo sort --workspace ${usage_check:+--check --check-format}
+"""
+
+[tasks."lint:cargo-shear"]
+description = "Check for and remove unused dependencies"
+usage = """
+flag "--fix" help="Remove unused dependencies."
+"""
+run = "cargo shear ${usage_fix:+--fix}"

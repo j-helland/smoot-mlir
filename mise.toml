@@ -5,11 +5,16 @@ experimental = true
 
 [monorepo]
 config_roots = [
-    "frontend/python",
+    "frontend/python/",
+    "units-rs/",
 ]
 
 [env]
 UNITS_OPT = "{{config_root}}/build-arm64/tools/units-opt"
+
+[tasks.shell]
+description = "Launch the nix development environment for this project."
+run = "nix develop -c fish"
 
 [tasks.run]
 depends = "//:build-backend"
@@ -25,6 +30,7 @@ depends = [
     "//:format-cpp-check",
     "//:tidy-cpp",
     "//frontend/python:lint",
+    "//units-rs:lint",
 ]
 
 [tasks.fix]
@@ -32,12 +38,14 @@ description = "Apply formatting and automatic linting fixes where possible."
 depends = [
     "//:format-cpp",
     "//frontend/python:fix",
+    "//units-rs:fix",
 ]
 
 [tasks.test]
 depends = [
     "//:test-backend",
     "//frontend/python:test",
+    "//units-rs:test",
 ]
 
 [tasks.test-backend]
@@ -60,7 +68,8 @@ cmake \
 [tasks.build-backend]
 run = """
 cmake -S . -B build-arm64 \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE"
 cmake --build build-arm64
 cmake -E touch build-arm64/.mise-build.stamp
 """
@@ -75,6 +84,9 @@ sources = [
     "lib/**/*.td",
     "lib/**/*.cpp",
     "lib/**/CMakeLists.txt",
+    "units-rs/CMakeLists.txt",
+    "units-rs/**/*.h",
+    "units-rs/**/*.rs",
 ]
 outputs = ["build-arm64/.mise-build.stamp"]
 
