@@ -3,15 +3,33 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
     self,
     nixpkgs,
+    rust-overlay,
   }: let
     system = "aarch64-darwin";
-    pkgs = import nixpkgs {inherit system;};
+    pkgs = import nixpkgs {
+      inherit system;
+      overlays = [
+        (import rust-overlay)
+      ];
+    };
+
     llvm = pkgs.llvmPackages_22;
+
+    rustToolChain = pkgs.rust-bin.stable."1.95.0".default.override {
+      extensions = [
+        "rust-src"
+        "rustfmt"
+        "clippy"
+      ];
+    };
+
   in {
     devShells.${system}.default = pkgs.mkShell {
       packages = [
@@ -21,6 +39,9 @@
         pkgs.mise
         pkgs.starship
         pkgs.usage
+
+        # Rust core
+        rustToolChain
 
         # MLIR
         pkgs.cmake
@@ -40,15 +61,9 @@
       ];
 
       shellHook = ''
-        export MLIR_DIR="${llvm.mlir.dev}/lib/cmake/mlir"
         export LLVM_DIR="${llvm.llvm.dev}/lib/cmake/llvm"
-
-        export PATH="${llvm.mlir}/bin:${llvm.llvm}/bin:${llvm.clang}/bin:$PATH"
-
-        if [ -z "$IN_NIX_FISH" ] && [ -t 1 ]; then
-          export IN_NIX_FISH=1
-          exec fish -C 'starship init fish | source; mise completion fish | source'
-        fi
+        export MLIR_DIR="${llvm.mlir.dev}/lib/cmake/mlir"
+        export MLIR_TABLEGEN_EXE="${llvm.tblgen}/bin/mlir-tblgen"
       '';
     };
   };
