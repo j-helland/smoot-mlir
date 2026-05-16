@@ -23,6 +23,7 @@ add_mlir_dialect_library(MLIRUnits
   UnitsOps.cpp
   UnitsTypes.cpp
   UnitsAttrs.cpp
+  UnitsAlgebra.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${PROJECT_SOURCE_DIR}/lib/Dialect/Units

@@ -1,13 +1,13 @@
 #include "Units/UnitsOps.h"
+#include "Units/UnitsAlgebra.h"
 #include "Units/UnitsAttrs.h"
 #include "Units/UnitsTypes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/LogicalResult.h"
-#include "llvm/Support/raw_ostream.h"
-#include <algorithm>
 #include <cassert>
 
 namespace units = mlir::units;
@@ -79,26 +79,14 @@ llvm::LogicalResult units::ConstOp::verify() {
  */
 static llvm::FailureOr<units::UnitAttr> mulUnits(units::UnitAttr const &lhs,
                                                  units::UnitAttr const &rhs) {
-  auto *context = lhs.getContext();
+  auto result =
+      units::algebra::multiply(lhs.getExpression(), rhs.getExpression());
+  if (!result) {
+    llvm::consumeError(result.takeError());
+    return llvm::failure();
+  }
 
-  // TODO(jwh): This whole function is essentially a mock. We'll need to call
-  //            out to a real unit algebra library to resolve things.
-  const auto lhsExpression = lhs.getExpression();
-  const auto rhsExpression = rhs.getExpression();
-
-  if (lhsExpression.empty() || lhsExpression == "dimensionless")
-    return rhs;
-  if (rhsExpression.empty() || rhsExpression == "dimensionless")
-    return lhs;
-
-  // TODO(jwh): hack as part of the mock to get the verifier to pass
-  if (lhsExpression == "meter / second" && rhsExpression == "second")
-    return units::UnitAttr::get(context, "meter");
-
-  std::string result;
-  llvm::raw_string_ostream os(result);
-  os << "(" << lhsExpression << ") * (" << rhsExpression << ")";
-  return units::UnitAttr::get(context, os.str());
+  return units::UnitAttr::get(lhs.getContext(), *result);
 }
 
 /**
@@ -118,6 +106,9 @@ inferMulResultType(mlir::MLIRContext *context, units::QuantityType lhsType,
                                   *resultUnit);
 }
 
+/**
+ * Return `true` if two units are equivalent.
+ */
 static bool isSameUnit(units::UnitAttr const &lhs, units::UnitAttr const &rhs) {
   // TODO(jwh): this is a mock; call out to real units algebra library once.
   return lhs.getExpression() == rhs.getExpression();
@@ -200,20 +191,28 @@ void units::MulOp::print(mlir::OpAsmPrinter &printer) {
 //==================================================
 // AddOp
 //==================================================
+static llvm::FailureOr<units::UnitAttr> addUnits(units::UnitAttr const &lhs,
+                                                 units::UnitAttr const &rhs) {
+  auto result = units::algebra::add(lhs.getExpression(), rhs.getExpression());
+  if (!result) {
+    llvm::consumeError(result.takeError());
+    return llvm::failure();
+  }
+  return units::UnitAttr::get(lhs.getContext(), *result);
+}
+
 /**
  * Infer the result type of an add operation.
  */
 static llvm::FailureOr<units::QuantityType>
 inferAddResultType(mlir::MLIRContext *context, units::QuantityType lhsType,
                    units::QuantityType rhsType) {
-  if (lhsType.getElementType() != rhsType.getElementType())
-    return llvm::failure();
-
-  if (!isSameUnit(lhsType.getUnit(), rhsType.getUnit()))
+  auto resultUnit = addUnits(lhsType.getUnit(), rhsType.getUnit());
+  if (llvm::failed(resultUnit))
     return llvm::failure();
 
   return units::QuantityType::get(context, lhsType.getElementType(),
-                                  lhsType.getUnit());
+                                  *resultUnit);
 }
 
 void units::AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
