@@ -1,5 +1,4 @@
-#ifndef LIB_DIALECT_UNITS_UNITSDIALECT_H_
-#define LIB_DIALECT_UNITS_UNITSDIALECT_H_
+#pragma once
 
 // Required because the .h.inc file refers to MLIR classes and does not itself
 // have any includes.
@@ -7,5 +6,3 @@
 
 // auto-generated header
 #include "lib/Dialect/Units/UnitsDialect.h.inc"
-
-#endif // LIB_DIALECT_UNITS_UNITSDIALECT_H_
