@@ -1,6 +1,6 @@
 // RUN: %units-opt %s | %FileCheck %s
 
 module {
-  // CHECK: %{{.*}} = units.const 4.200000e+00 : !units.quantity<f64, #units.unit<dims = [1]>>
-  %0 = units.const 4.2 : !units.quantity<f64, #units.unit<dims = [1]>>
+  // CHECK: %{{.*}} = units.const 4.200000e+00 : !units.quantity<f64, #units.unit<"meter">>
+  %0 = units.const 4.2 : !units.quantity<f64, #units.unit<"meter">>
 }

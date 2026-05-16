@@ -1,5 +1,4 @@
 #include "Units/UnitsAttrs.h"
-#include "Units/UnitsDialect.h"
 #include "Units/UnitsTypes.h"
 
 #include "gtest/gtest.h"
@@ -23,8 +22,8 @@ protected:
 
 TEST_F(QuantityTypeTest, CanonicalizesDimensionality) {
   auto quantity = mlir::units::QuantityType::get(
-      &context, mlir::Float64Type{}, mlir::units::UnitAttr::get(&context, {1, 0}));
-  auto expected = mlir::units::UnitAttr::get(&context, {1});
+      &context, mlir::Float64Type{}, mlir::units::UnitAttr::get(&context, "meter"));
+  auto expected = mlir::units::UnitAttr::get(&context, "meter");
 
   ASSERT_EQ(quantity.getUnit(), expected);
 }

@@ -9,16 +9,12 @@ def Units_UnitAttr : AttrDef<UnitsDialect, "Unit"> {
     let summary = "canonical physical unit attribute";
 
     let parameters = (ins
-        ArrayRefParameter<"int64_t">:$dims
+        StringRefParameter<"unit expresion">:$expression
     );
 
     let builders = [
-        AttrBuilder<(ins "llvm::ArrayRef<int64_t>":$dims), [{
-            llvm::SmallVector<int64_t> canonicalDims(dims.begin(), dims.end());
-            while (!canonicalDims.empty() && canonicalDims.back() == 0) {
-                canonicalDims.pop_back();
-            }
-            return $_get($_ctxt, canonicalDims);
+        AttrBuilder<(ins "llvm::StringRef":$expression), [{
+            return $_get($_ctxt, expression);
         }]>
     ];
 
