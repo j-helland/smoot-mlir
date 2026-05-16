@@ -9,11 +9,9 @@ def UnitsToStandard : Pass<"units-to-standard"> {
   let description = [{
     This pass lowers the `units` dialect to standard MLIR.
   }];
-  let dependentDialects = [
-    "mlir::units::UnitsDialect",
-    "mlir::arith::ArithDialect",
-    "mlir::scf::SCFDialect",
+  let dependentDialects = ["mlir::units::UnitsDialect",
+                           "mlir::arith::ArithDialect", "mlir::scf::SCFDialect",
   ];
 }
 
-#endif  // LIB_CONVERSION_UNITSTOSTANDARD_UNITSTOSTANDARD_TD_
+#endif // LIB_CONVERSION_UNITSTOSTANDARD_UNITSTOSTANDARD_TD_

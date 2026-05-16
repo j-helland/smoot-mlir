@@ -22,7 +22,8 @@ protected:
 
 TEST_F(QuantityTypeTest, CanonicalizesDimensionality) {
   auto quantity = mlir::units::QuantityType::get(
-      &context, mlir::Float64Type{}, mlir::units::UnitAttr::get(&context, "meter"));
+      &context, mlir::Float64Type{},
+      mlir::units::UnitAttr::get(&context, "meter"));
   auto expected = mlir::units::UnitAttr::get(&context, "meter");
 
   ASSERT_EQ(quantity.getUnit(), expected);

@@ -1,3 +1,13 @@
+experimental_monorepo_root = true
+
+[settings]
+experimental = true
+
+[monorepo]
+config_roots = [
+    "frontend/python",
+]
+
 [env]
 UNITS_OPT = "{{config_root}}/build-arm64/tools/units-opt"
 
@@ -22,8 +32,24 @@ sources = [
 ]
 outputs = ["build-arm64/.mise-build.stamp"]
 
+[tasks.format-cpp]
+description = "Format C++ and TableGen files with clang-format"
+run = "clang-format -i $(git ls-files '*.h' '*.cpp' '*.td')"
+
+[tasks.format-cpp-check]
+description = "Check C++ and TableGen formatting"
+run = "clang-format --dry-run --Werror $(git ls-files '*.h' '*.cpp' '*.td')"
+
+[tasks.tidy-cpp]
+description = "Run clang-tidy over C++ translation units"
+depends = "//:build-backend"
+run = """
+run-clang-tidy -quiet -p build-arm64 \
+  $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'unittests/**/*.cpp')
+"""
+
 [tasks.run]
-depends = "build-backend"
+depends = "//:build-backend"
 run = """
 mlir-opt \
   --load-pass-plugin=build-arm64/UnitVerifyPass.dylib \
@@ -31,20 +57,30 @@ mlir-opt \
   test.mlir
 """
 
+[tasks.lint]
+depends = [
+    "//:format-cpp-check",
+    "//:tidy-cpp",
+    "//frontend/python:lint",
+]
+
+[tasks.fix]
+description = "Apply formatting and automatic linting fixes where possible."
+depends = [
+    "//:format-cpp",
+    "//frontend/python:fix",
+]
+
 [tasks.test]
 depends = [
-    "test-backend",
-    "test-python-frontend",
+    "//:test-backend",
+    "//frontend/python:test",
 ]
 
 [tasks.test-backend]
-depends = "build-backend"
+depends = "//:build-backend"
 run = """
 cmake \
   --build build-arm64 \
   --target check-units
 """
-
-[tasks.test-python-frontend]
-dir = "frontend/python"
-run = "mise run test"

@@ -6,14 +6,14 @@ ty = "0.0.35"
 experimental = true
 
 [tasks.test]
-depends = ["build-backend"]
+depends = ["//:build-backend"]
 run = "uv run -- pytest"
 
 [tasks.lint]
 depends = [
-    "lint:ruff-check",
-    "lint:ruff-format --check",
-    "lint:typecheck",
+    "//frontend/python:lint:ruff-check",
+    "//frontend/python:lint:ruff-format --check",
+    "//frontend/python:lint:typecheck",
 ]
 
 [tasks."lint:ruff-check"]
@@ -36,7 +36,7 @@ run = "ty check ${usage_fix:+--fix}"
 
 [tasks.fix]
 depends = [
-    "lint:ruff-format",
-    "lint:ruff-check --fix",
-    "lint:typecheck --fix"
+    "//frontend/python:lint:ruff-format",
+    "//frontend/python:lint:ruff-check --fix",
+    "//frontend/python:lint:typecheck --fix"
 ]

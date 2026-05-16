@@ -12,8 +12,7 @@
 #define GET_TYPEDEF_CLASSES
 #include "lib/Dialect/Units/UnitsTypes.cpp.inc"
 
-namespace mlir {
-namespace units {
+namespace mlir::units {
 
 void UnitsDialect::initialize() {
   addAttributes<
@@ -32,5 +31,4 @@ void UnitsDialect::initialize() {
       >();
 }
 
-} // namespace units
-} // namespace mlir
+} // namespace mlir::units

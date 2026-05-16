@@ -37,8 +37,7 @@ struct ConstLowering : mlir::OpConversionPattern<ConstOp> {
   mlir::LogicalResult
   matchAndRewrite(ConstOp op, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
-    auto quantityType =
-        llvm::cast<QuantityType>(op.getResult().getType());
+    auto quantityType = llvm::cast<QuantityType>(op.getResult().getType());
     auto constant = mlir::arith::ConstantOp::create(
         rewriter, op.getLoc(), quantityType.getElementType(),
         op.getValueAttr());
@@ -53,8 +52,7 @@ struct MulLowering : mlir::OpConversionPattern<MulOp> {
   mlir::LogicalResult
   matchAndRewrite(MulOp op, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
-    auto quantityType =
-        llvm::cast<QuantityType>(op.getResult().getType());
+    auto quantityType = llvm::cast<QuantityType>(op.getResult().getType());
     auto mul = mlir::arith::MulFOp::create(rewriter, op.getLoc(),
                                            quantityType.getElementType(),
                                            adaptor.getLhs(), adaptor.getRhs());
@@ -69,8 +67,7 @@ struct AddLowering : mlir::OpConversionPattern<AddOp> {
   mlir::LogicalResult
   matchAndRewrite(AddOp op, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
-    auto quantityType =
-        llvm::cast<QuantityType>(op.getResult().getType());
+    auto quantityType = llvm::cast<QuantityType>(op.getResult().getType());
     auto add = mlir::arith::AddFOp::create(rewriter, op.getLoc(),
                                            quantityType.getElementType(),
                                            adaptor.getLhs(), adaptor.getRhs());
@@ -88,9 +85,8 @@ void UnitsToStandardPass::runOnOperation() {
   // noop on all "normal" types
   converter.addConversion([](mlir::Type type) { return type; });
   // !units.quantity<f64, *> -> f64
-  converter.addConversion([](QuantityType type) -> mlir::Type {
-    return type.getElementType();
-  });
+  converter.addConversion(
+      [](QuantityType type) -> mlir::Type { return type.getElementType(); });
 
   mlir::RewritePatternSet patterns(&context);
   patterns.add<ConstLowering, MulLowering, AddLowering>(converter, &context);

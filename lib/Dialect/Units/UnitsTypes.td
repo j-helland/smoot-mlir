@@ -6,15 +6,13 @@ include "Units/UnitsDialect.td"
 include "Units/UnitsAttrs.td"
 
 def Units_QuantityType : TypeDef<UnitsDialect, "Quantity"> {
-    let mnemonic = "quantity";
-    let summary = "physical quantity type";
+  let mnemonic = "quantity";
+  let summary = "physical quantity type";
 
-    let parameters = (ins
-        "mlir::Type":$elementType,
-        TypeParameter<"::mlir::units::UnitAttr", "unit attribute">:$unit
-    );
+  let parameters = (ins "mlir::Type":$elementType,
+      TypeParameter<"::mlir::units::UnitAttr", "unit attribute">:$unit);
 
-    let hasCustomAssemblyFormat = 1;
+  let hasCustomAssemblyFormat = 1;
 }
 
-#endif  // LIB_DIALECT_UNITS_UNITSTYPES_TD_
+#endif // LIB_DIALECT_UNITS_UNITSTYPES_TD_

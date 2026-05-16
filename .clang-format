@@ -1,0 +1,30 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++17
+ColumnLimit: 80
+DerivePointerAlignment: false
+PointerAlignment: Right
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: '^"Units/'
+    Priority: 1
+  - Regex: '^"lib/'
+    Priority: 2
+  - Regex: '^"mlir/'
+    Priority: 3
+  - Regex: '^"llvm/'
+    Priority: 4
+  - Regex: '^"gtest/'
+    Priority: 5
+  - Regex: '^<.*\.h>'
+    Priority: 6
+  - Regex: '^<.*>'
+    Priority: 7
+  - Regex: '.*'
+    Priority: 8
+---
+Language: TableGen
+BasedOnStyle: LLVM
+ColumnLimit: 80

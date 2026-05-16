@@ -27,6 +27,7 @@
         pkgs.ninja
         pkgs.ccache
         llvm.llvm
+        llvm.clang-tools
         llvm.mlir
         llvm.tblgen
 

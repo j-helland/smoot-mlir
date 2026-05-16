@@ -41,3 +41,32 @@ fish_add_path $(pwd)/bin
 mise run 
 ```
 
+# C++ Tooling
+
+The repository uses LLVM-style formatting and compile-database-backed linting for
+the MLIR/C++ code.
+
+```shell
+# Format C++ and TableGen files.
+mise run format-cpp
+
+# Check formatting without modifying files.
+mise run format-cpp-check
+
+# Run clang-tidy using build-arm64/compile_commands.json.
+mise run tidy-cpp
+
+# Run the full C++ lint stack.
+mise run lint-cpp
+```
+
+`tidy-cpp` depends on `build-backend`, which configures CMake with
+`CMAKE_EXPORT_COMPILE_COMMANDS=ON`.
+
+You can also opt into build-integrated checks when configuring CMake manually:
+
+```shell
+cmake -S . -B build-arm64 \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DUNITS_ENABLE_CLANG_TIDY=ON
+```

@@ -17,4 +17,4 @@ def UnitsDialect : Dialect {
   let useDefaultAttributePrinterParser = 1;
 }
 
-#endif  // LIB_DIALECT_UNITS_UNITSDIALECT_TD_
+#endif // LIB_DIALECT_UNITS_UNITSDIALECT_TD_
