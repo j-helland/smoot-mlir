@@ -95,6 +95,7 @@ description = "Build the C++ backend with AddressSanitizer and UBSan"
 run = """
 cmake -S . -B build-arm64-sanitizers \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
     -DCMAKE_BUILD_TYPE=Debug \
     -DUNITS_ENABLE_ASAN=ON \
     -DUNITS_ENABLE_UBSAN=ON
@@ -119,16 +120,20 @@ outputs = ["build-arm64-sanitizers/.mise-build.stamp"]
 
 [tasks.format-cpp]
 description = "Format C++ and TableGen files with clang-format"
-run = "clang-format -i $(git ls-files '*.h' '*.cpp' '*.td')"
+run = """
+"$CLANG_FORMAT_EXE" -i $(git ls-files '*.h' '*.cpp' '*.td')
+"""
 
 [tasks.format-cpp-check]
 description = "Check C++ and TableGen formatting"
-run = "clang-format --dry-run --Werror $(git ls-files '*.h' '*.cpp' '*.td')"
+run = """
+"$CLANG_FORMAT_EXE" --dry-run --Werror $(git ls-files '*.h' '*.cpp' '*.td')
+"""
 
 [tasks.tidy-cpp]
 description = "Run clang-tidy over C++ translation units"
 depends = "//:build-backend"
 run = """
-run-clang-tidy -quiet -p build-arm64 \
+"$CLANG_TIDY_EXE" -quiet -p build-arm64 \
   $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'unittests/**/*.cpp')
 """

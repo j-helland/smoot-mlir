@@ -48,6 +48,7 @@
         pkgs.ninja
         pkgs.ccache
         llvm.llvm
+        llvm.clang
         llvm.clang-tools
         llvm.mlir
         llvm.tblgen
@@ -61,9 +62,15 @@
       ];
 
       shellHook = ''
+        export CC="${llvm.clang}/bin/clang"
+        export CXX="${llvm.clang}/bin/clang++"
         export LLVM_DIR="${llvm.llvm.dev}/lib/cmake/llvm"
         export MLIR_DIR="${llvm.mlir.dev}/lib/cmake/mlir"
         export MLIR_TABLEGEN_EXE="${llvm.tblgen}/bin/mlir-tblgen"
+        export CLANG_FORMAT_EXE="${llvm.clang-tools}/bin/clang-format"
+        export CLANG_TIDY_EXE="${llvm.clang-tools}/bin/clang-tidy"
+
+        export PATH="${llvm.clang-tools}/bin:${llvm.mlir}/bin:${llvm.llvm}/bin:$PATH"
       '';
     };
   };
