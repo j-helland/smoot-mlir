@@ -11,43 +11,6 @@ config_roots = [
 [env]
 UNITS_OPT = "{{config_root}}/build-arm64/tools/units-opt"
 
-[tasks.build-backend]
-run = """
-cmake -S . -B build-arm64 \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build build-arm64
-cmake -E touch build-arm64/.mise-build.stamp
-"""
-# Only execute the task if any of the following have changed:
-sources = [
-    "CMakeLists.txt",
-    "tools/**/*.h",
-    "tools/**/*.td",
-    "tools/**/*.cpp",
-    "tools/**/CMakeLists.txt",
-    "lib/**/*.h",
-    "lib/**/*.td",
-    "lib/**/*.cpp",
-    "lib/**/CMakeLists.txt",
-]
-outputs = ["build-arm64/.mise-build.stamp"]
-
-[tasks.format-cpp]
-description = "Format C++ and TableGen files with clang-format"
-run = "clang-format -i $(git ls-files '*.h' '*.cpp' '*.td')"
-
-[tasks.format-cpp-check]
-description = "Check C++ and TableGen formatting"
-run = "clang-format --dry-run --Werror $(git ls-files '*.h' '*.cpp' '*.td')"
-
-[tasks.tidy-cpp]
-description = "Run clang-tidy over C++ translation units"
-depends = "//:build-backend"
-run = """
-run-clang-tidy -quiet -p build-arm64 \
-  $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'unittests/**/*.cpp')
-"""
-
 [tasks.run]
 depends = "//:build-backend"
 run = """
@@ -83,4 +46,77 @@ run = """
 cmake \
   --build build-arm64 \
   --target check-units
+"""
+
+[tasks.test-backend-sanitizers]
+description = "Run backend tests under AddressSanitizer and UBSan"
+depends = "//:build-backend-sanitizers"
+run = """
+cmake \
+  --build build-arm64-sanitizers \
+  --target check-units
+"""
+
+[tasks.build-backend]
+run = """
+cmake -S . -B build-arm64 \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build build-arm64
+cmake -E touch build-arm64/.mise-build.stamp
+"""
+# Only execute the task if any of the following have changed:
+sources = [
+    "CMakeLists.txt",
+    "tools/**/*.h",
+    "tools/**/*.td",
+    "tools/**/*.cpp",
+    "tools/**/CMakeLists.txt",
+    "lib/**/*.h",
+    "lib/**/*.td",
+    "lib/**/*.cpp",
+    "lib/**/CMakeLists.txt",
+]
+outputs = ["build-arm64/.mise-build.stamp"]
+
+[tasks.build-backend-sanitizers]
+description = "Build the C++ backend with AddressSanitizer and UBSan"
+run = """
+cmake -S . -B build-arm64-sanitizers \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DUNITS_ENABLE_ASAN=ON \
+    -DUNITS_ENABLE_UBSAN=ON
+cmake --build build-arm64-sanitizers
+cmake -E touch build-arm64-sanitizers/.mise-build.stamp
+"""
+sources = [
+    "CMakeLists.txt",
+    "tools/**/*.h",
+    "tools/**/*.td",
+    "tools/**/*.cpp",
+    "tools/**/CMakeLists.txt",
+    "lib/**/*.h",
+    "lib/**/*.td",
+    "lib/**/*.cpp",
+    "lib/**/CMakeLists.txt",
+    "mlir-tests/**/*",
+    "unittests/**/*.cpp",
+    "unittests/**/CMakeLists.txt",
+]
+outputs = ["build-arm64-sanitizers/.mise-build.stamp"]
+
+[tasks.format-cpp]
+description = "Format C++ and TableGen files with clang-format"
+run = "clang-format -i $(git ls-files '*.h' '*.cpp' '*.td')"
+
+[tasks.format-cpp-check]
+description = "Check C++ and TableGen formatting"
+run = "clang-format --dry-run --Werror $(git ls-files '*.h' '*.cpp' '*.td')"
+
+[tasks.tidy-cpp]
+description = "Run clang-tidy over C++ translation units"
+depends = "//:build-backend"
+run = """
+run-clang-tidy -quiet -p build-arm64 \
+  $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'unittests/**/*.cpp')
 """

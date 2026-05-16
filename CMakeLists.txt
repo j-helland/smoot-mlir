@@ -7,6 +7,24 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_DEPS ON)
 
 option(UNITS_ENABLE_CLANG_TIDY "Run clang-tidy during C++ builds" OFF)
+option(UNITS_ENABLE_ASAN "Build with AddressSanitizer" OFF)
+option(UNITS_ENABLE_UBSAN "Build with UndefinedBehaviorSanitizer" OFF)
+
+set(UNITS_SANITIZERS)
+if(UNITS_ENABLE_ASAN)
+  list(APPEND UNITS_SANITIZERS address)
+endif()
+if(UNITS_ENABLE_UBSAN)
+  list(APPEND UNITS_SANITIZERS undefined)
+endif()
+
+if(UNITS_SANITIZERS)
+  list(JOIN UNITS_SANITIZERS "," UNITS_SANITIZER_LIST)
+  add_compile_options(-fsanitize=${UNITS_SANITIZER_LIST}
+                      -fno-omit-frame-pointer)
+  add_link_options(-fsanitize=${UNITS_SANITIZER_LIST})
+  message(STATUS "Enabled sanitizers: ${UNITS_SANITIZER_LIST}")
+endif()
 
 if(UNITS_ENABLE_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES clang-tidy REQUIRED)

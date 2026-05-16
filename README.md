@@ -57,7 +57,10 @@ mise run format-cpp-check
 mise run tidy-cpp
 
 # Run the full C++ lint stack.
-mise run lint-cpp
+mise run lint
+
+# Run backend tests with AddressSanitizer and UndefinedBehaviorSanitizer.
+mise run test-backend-sanitizers
 ```
 
 `tidy-cpp` depends on `build-backend`, which configures CMake with
@@ -68,5 +71,7 @@ You can also opt into build-integrated checks when configuring CMake manually:
 ```shell
 cmake -S . -B build-arm64 \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DUNITS_ENABLE_CLANG_TIDY=ON
+  -DUNITS_ENABLE_CLANG_TIDY=ON \
+  -DUNITS_ENABLE_ASAN=ON \
+  -DUNITS_ENABLE_UBSAN=ON
 ```
