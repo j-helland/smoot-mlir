@@ -7,7 +7,6 @@ from units.driver import UnitsOpt
 from units.mlir_emit import emit_mlir
 
 
-@pytest.mark.skip("backend does not currently accept frontend IR")
 def test_run_units_opt(snapshot: Snapshot):
     """Happy path."""
 
@@ -25,7 +24,6 @@ def test_run_units_opt(snapshot: Snapshot):
     assert mlir == snapshot
 
 
-@pytest.mark.skip("backend does not currently accept frontend IR")
 def test_run_units_opt_invalid():
     """Verify that the compiler backend fails on an invalid computation."""
 
@@ -43,7 +41,6 @@ def test_run_units_opt_invalid():
         units_opt.run_units_opt(units_mlir)
 
 
-@pytest.mark.skip("backend does not currently accept frontend IR")
 def test_run_units_opt_not_mlir():
     units_opt = UnitsOpt.default()
     with pytest.raises(UnitsCompileError):

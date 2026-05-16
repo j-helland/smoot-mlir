@@ -2,7 +2,6 @@ import pytest
 from units import Quantity, Unit, verify, UnitsCompileError
 
 
-@pytest.mark.skip("backend does not currently accept frontend IR")
 def test_verify_happy_path():
     @verify
     def distance(
@@ -12,7 +11,6 @@ def test_verify_happy_path():
         return velocity * dt
 
 
-@pytest.mark.skip("backend does not currently accept frontend IR")
 def test_verify_invalid():
     """Verify that the compiler backend fails on an invalid computation."""
 
