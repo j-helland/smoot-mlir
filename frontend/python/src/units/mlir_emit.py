@@ -5,6 +5,7 @@ from typing import TypeAlias
 
 from units import UnitsCompileError
 from units.annotations import QuantityTypeInfo, Unit
+from units.diagnostics import Diagnostic
 from units.ir import Binary, Expr, Function, Name, Node, Operator, Return, Stmt
 
 
@@ -43,7 +44,8 @@ class MlirEmitter:
             case Function():
                 self.emit_function(node)
             case _:
-                raise UnitsCompileError from NotImplementedError(type(node))
+                msg = f"unsupported IR node type `{node!r}`"
+                raise UnitsCompileError(Diagnostic.emit(msg, node.span))
 
     def emit_function(self, function: Function) -> None:
         sig = function.signature
@@ -83,7 +85,7 @@ class MlirEmitter:
 
             case _:
                 msg = f"unsupported statement: {stmt}"
-                raise TypeError(msg)
+                raise UnitsCompileError(Diagnostic.emit(msg, stmt.span))
 
     def emit_expr(self, expr: Expr, symbols: MlirSymbolTableType) -> MlirValue:
         match expr:
@@ -111,7 +113,7 @@ class MlirEmitter:
 
             case _:
                 msg = f"unsupported IR expression: {expr!r}"
-                raise TypeError(msg)
+                raise UnitsCompileError(Diagnostic.emit(msg))
 
     def get_next_ssa_id(self) -> str:
         value = f"%{self._next_ssa_id}"
@@ -128,7 +130,7 @@ def emit_element_type(element: str) -> str:
         return "f64"
 
     msg = f"unsupported element type: {element!r}"
-    raise TypeError(msg)
+    raise UnitsCompileError(Diagnostic.emit(msg))
 
 
 def emit_unit_attr(unit: Unit) -> str:
@@ -142,11 +144,12 @@ def emit_operator(op: Operator) -> str:
         case Operator.mul:
             return "units.mul"
         case _:
-            raise NotImplementedError(op)
+            msg = f"unsupported operator `{op!r}`"
+            raise UnitsCompileError(Diagnostic.emit(msg))
 
 
 def require_type(value: MlirValue) -> QuantityTypeInfo:
     if value.type is None:
         msg = f"cannot emit operand `{value.name}` without a known type"
-        raise TypeError(msg)
+        raise UnitsCompileError(Diagnostic.emit(msg))
     return value.type

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .annotations import QuantityAnnotation, Unit
-from .errors import UnitsCompileError
+from .diagnostics import UnitsCompileError
 from .verify import verify
 
 if TYPE_CHECKING:

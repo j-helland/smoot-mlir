@@ -1,6 +1,6 @@
 import pytest
 
-from units import Quantity, Unit
+from units import Quantity, Unit, UnitsCompileError
 from units.annotations import QuantityAnnotation, QuantityTypeInfo
 
 
@@ -12,11 +12,11 @@ def test_annotation_instantiation():
     )
 
     # Only supports specific quantity value types.
-    with pytest.raises(TypeError):
+    with pytest.raises(UnitsCompileError):
         Quantity[int, Unit("meter / second")]
 
     # Only supports `Unit` types.
-    with pytest.raises(TypeError, match="must be a Unit type"):
+    with pytest.raises(UnitsCompileError, match="must be a Unit type"):
         Quantity[float, "meter"]
 
     # Accepts any expression at annotation instantiation time.

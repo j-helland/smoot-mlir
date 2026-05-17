@@ -1,4 +1,5 @@
 from __future__ import annotations
+from units.diagnostics import Diagnostic
 
 import functools
 import shutil
@@ -16,7 +17,7 @@ from units import UnitsCompileError
 def _parse_command_exists(value: str | Path) -> str:
     if (command := shutil.which(value)) is None:
         msg = f"No such command '{value}'"
-        raise UnitsCompileError from ValueError(msg)
+        raise UnitsCompileError(msg)
     return command
 
 
@@ -54,8 +55,12 @@ class UnitsOpt(BaseSettings):
             print(f"[dim italic]--- STDERR: {self.units_opt} ---[/dim italic]")
             print(result.stderr)
 
-            msg = "compiler backend units-opt failed"
-            raise UnitsCompileError(msg) from e
+            raise UnitsCompileError(
+                Diagnostic.backend(
+                    message="compiler backend units-opt failed",
+                    backend_stderr=result.stderr,
+                )
+            ) from e
         result.check_returncode()
 
         return result.stdout
