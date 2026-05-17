@@ -1,5 +1,5 @@
 # serializer version: 1
-# name: test_run_units_opt
+# name: test_run_units_opt_happy_path
   '''
   module {
     func.func @distance(%arg0: !units.quantity<f64, #units.unit<"meter / second">>, %arg1: !units.quantity<f64, #units.unit<"second">>) -> !units.quantity<f64, #units.unit<"meter">> {

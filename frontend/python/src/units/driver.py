@@ -10,9 +10,33 @@ from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich import print
 
-from units import UnitsCompileError
+from units import UnitsCompileError, _units_backend
 from units.diagnostics import Diagnostic
 from units.mlir_emit import GeneratedModule
+
+
+class NativeBackend:
+    __slots__ = ()
+
+    @classmethod
+    @functools.lru_cache(maxsize=1)
+    def default(cls) -> NativeBackend:
+        return cls()
+
+    def verify_mlir(self, input: GeneratedModule | str) -> None:
+        if isinstance(input, GeneratedModule):
+            text = input.text
+        else:
+            text = input
+
+        try:
+            _units_backend.verify_mlir(text)
+        except _units_backend.BackendError as e:
+            raise UnitsCompileError(
+                Diagnostic.backend(
+                    message=str(e),
+                )
+            ) from e
 
 
 def _parse_command_exists(value: str | Path) -> str:
@@ -27,6 +51,12 @@ CommandExistsField = Annotated[str, BeforeValidator(_parse_command_exists)]
 
 
 class UnitsOpt(BaseSettings):
+    """Wrapper around the units-opt commandline tool.
+
+    Useful for testing the compiler frontend's MLIR emission because it uses a textual
+    representation for the IR.
+    """
+
     model_config = SettingsConfigDict(
         frozen=True,
         extra="forbid",

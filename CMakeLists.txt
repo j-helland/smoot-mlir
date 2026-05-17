@@ -68,9 +68,13 @@ include_directories(${PROJECT_SOURCE_DIR}/lib/Dialect)
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${PROJECT_BINARY_DIR}/lib/Dialect)
 
+# core
 add_subdirectory(units-rs)
 add_subdirectory(lib)
 add_subdirectory(tools)
+add_subdirectory(bindings/python)
+
+# tests
 add_subdirectory(mlir-tests)
 add_subdirectory(unittests)
 

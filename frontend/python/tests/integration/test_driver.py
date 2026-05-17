@@ -1,15 +1,13 @@
-from units.ast_parser import transform_ast
 import pytest
-from syrupy.data import Snapshot
+from syrupy.assertion import SnapshotAssertion
 
 from units import Quantity, Unit, UnitsCompileError
+from units.ast_parser import transform_ast
 from units.driver import UnitsOpt
 from units.mlir_emit import emit_mlir
 
 
-def test_run_units_opt(snapshot: Snapshot):
-    """Happy path."""
-
+def test_run_units_opt_happy_path(snapshot: SnapshotAssertion):
     def distance(
         velocity: Quantity[float, Unit("meter / second")],
         dt: Quantity[float, Unit("second")],

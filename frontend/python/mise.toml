@@ -1,13 +1,5 @@
-[tools]
-ruff = "0.15.12"
-ty = "0.0.35"
-
 [settings]
 experimental = true
-
-[env]
-# Use uv.lock for all commands
-UV_FROZEN=1
 
 [tasks.test]
 depends = ["//:build-backend"]
@@ -37,7 +29,10 @@ run = "ruff format ${usage_check:+--check}"
 usage = """
 flag "--fix" help="Auto-apply safe fixes."
 """
-run = "ty check ${usage_fix:+--fix}"
+run = """
+ty check ${usage_fix:+--fix} \
+    --python "$(uv python find)"
+"""
 
 [tasks."lint:deadcode"]
 run = "uv run -- vulture src tests --min-confidence 100"

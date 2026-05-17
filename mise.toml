@@ -1,5 +1,9 @@
 experimental_monorepo_root = true
 
+[tools]
+ruff = "0.15.12"
+ty = "0.0.35"
+
 [settings]
 experimental = true
 
@@ -11,6 +15,7 @@ config_roots = [
 
 [env]
 UNITS_OPT = "{{config_root}}/build-arm64/tools/units-opt"
+UV_FROZEN = true
 
 [tasks.shell]
 description = "Launch the nix development environment for this project."
@@ -67,9 +72,16 @@ cmake \
 
 [tasks.build-backend]
 run = """
+PYTHON_EXE="$(uv python find)"
+PYBIND11_DIR="$(uv run -- python -m pybind11 --cmakedir)"
+LIT_EXE="$(uv run -- command -v lit)"
+
 cmake -S . -B build-arm64 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE"
+    -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
+    -DPython_EXECUTABLE="$PYTHON_EXE" \
+    -Dpybind11_DIR="$PYBIND11_DIR" \
+    -DLIT_EXECUTABLE="$LIT_EXE"
 cmake --build build-arm64
 cmake -E touch build-arm64/.mise-build.stamp
 """
@@ -87,15 +99,25 @@ sources = [
     "units-rs/CMakeLists.txt",
     "units-rs/**/*.h",
     "units-rs/**/*.rs",
+    "bindings/**/CMakeLists.txt",
+    "bindings/**/*.h",
+    "bindings/**/*.cpp",
 ]
 outputs = ["build-arm64/.mise-build.stamp"]
 
 [tasks.build-backend-sanitizers]
 description = "Build the C++ backend with AddressSanitizer and UBSan"
 run = """
+PYTHON_EXE="$(uv python find)"
+PYBIND11_DIR="$(uv run -- python -m pybind11 --cmakedir)"
+LIT_EXE="$(uv run -- command -v lit)"
+
 cmake -S . -B build-arm64-sanitizers \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
+    -DPython_EXECUTABLE="$PYTHON_EXE" \
+    -Dpybind11_DIR="$PYBIND11_DIR" \
+    -DLIT_EXECUTABLE="$LIT_EXE" \
     -DCMAKE_BUILD_TYPE=Debug \
     -DUNITS_ENABLE_ASAN=ON \
     -DUNITS_ENABLE_UBSAN=ON
@@ -112,6 +134,11 @@ sources = [
     "lib/**/*.td",
     "lib/**/*.cpp",
     "lib/**/CMakeLists.txt",
+    "units-rs/**/*.h",
+    "units-rs/**/*.rs",
+    "bindings/**/CMakeLists.txt",
+    "bindings/**/*.h",
+    "bindings/**/*.cpp",
     "mlir-tests/**/*",
     "unittests/**/*.cpp",
     "unittests/**/CMakeLists.txt",
@@ -135,5 +162,5 @@ description = "Run clang-tidy over C++ translation units"
 depends = "//:build-backend"
 run = """
 "$CLANG_TIDY_EXE" -quiet -p build-arm64 \
-  $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'unittests/**/*.cpp')
+  $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'bindings/**/*.cpp' 'unittests/**/*.cpp')
 """
