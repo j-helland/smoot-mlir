@@ -14,6 +14,7 @@ depends = [
     "//frontend/python:lint:ruff-check",
     "//frontend/python:lint:ruff-format --check",
     "//frontend/python:lint:typecheck",
+    "//frontend/python:lint:deadcode",
 ]
 
 [tasks."lint:ruff-check"]
@@ -33,6 +34,9 @@ usage = """
 flag "--fix" help="Auto-apply safe fixes."
 """
 run = "ty check ${usage_fix:+--fix}"
+
+[tasks."lint:deadcode"]
+run = "uv run -- vulture src tests --min-confidence 100"
 
 [tasks.fix]
 depends = [

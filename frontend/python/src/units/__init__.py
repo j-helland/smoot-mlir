@@ -16,10 +16,10 @@ class Quantity:
     def __class_getitem__(cls, params: Any) -> QuantityAnnotation:
         return QuantityAnnotation.from_params(params)
 
-    def __mul__(self, other: Any) -> Quantity:
+    def __mul__(self, _: Any) -> Quantity:
         raise NotImplementedError
 
-    def __add__(self, other: Any) -> Quantity:
+    def __add__(self, _: Any) -> Quantity:
         raise NotImplementedError
 
 
