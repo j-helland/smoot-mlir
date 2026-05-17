@@ -78,9 +78,9 @@ cmake \
 
 [tasks.build-backend]
 run = """
-PYTHON_EXE="$(uv python find)"
-PYBIND11_DIR="$(uv run -- python -m pybind11 --cmakedir)"
-LIT_EXE="$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')"
+PYTHON_EXE="${PYTHON_EXE:-$(uv python find)}"
+PYBIND11_DIR="${PYBIND11_DIR:-$(uv run -- python -m pybind11 --cmakedir)}"
+LIT_EXE="${LIT_EXE:-$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build-arm64 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -119,9 +119,9 @@ outputs = ["build-arm64/.mise-build.stamp"]
 [tasks.build-backend-sanitizers]
 description = "Build the C++ backend with AddressSanitizer and UBSan"
 run = """
-PYTHON_EXE="$(uv python find)"
-PYBIND11_DIR="$(uv run -- python -m pybind11 --cmakedir)"
-LIT_EXE="$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')"
+PYTHON_EXE="${PYTHON_EXE:-$(uv python find)}"
+PYBIND11_DIR="${PYBIND11_DIR:-$(uv run -- python -m pybind11 --cmakedir)}"
+LIT_EXE="${LIT_EXE:-$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build-arm64-sanitizers \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
