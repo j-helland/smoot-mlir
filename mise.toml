@@ -30,6 +30,13 @@ mlir-opt \
   test.mlir
 """
 
+[tasks.check-all]
+depends = [
+    "//:lint",
+    "//:test",
+    "//:test-backend-sanitizers",
+]
+
 [tasks.lint]
 depends = [
     "//:format-cpp-check",
@@ -136,9 +143,6 @@ sources = [
     "lib/**/CMakeLists.txt",
     "units-rs/**/*.h",
     "units-rs/**/*.rs",
-    "bindings/**/CMakeLists.txt",
-    "bindings/**/*.h",
-    "bindings/**/*.cpp",
     "mlir-tests/**/*",
     "unittests/**/*.cpp",
     "unittests/**/CMakeLists.txt",
