@@ -9,10 +9,7 @@ from types import FunctionType
 from typing import Callable, Final, TypeAlias
 
 from units import Unit, UnitsCompileError
-from units.annotations import (
-    QuantityTypeInfo,
-    parse_quantity_annotation,
-)
+from units.annotations import QuantityTypeInfo
 from units.ir import (
     Assign,
     Binary,
@@ -213,13 +210,6 @@ def _transform_annotation(
     annotation: ast.expr,
     ctx: _AstTransformCtx,
 ) -> QuantityTypeInfo:
-    expr = ast.Expression(body=annotation)
-    ast.fix_missing_locations(expr)
-    value = eval(compile(expr, ctx.span.filename, "eval"), ctx.globals)
-    return parse_quantity_annotation(value)
-
-
-def _parse_quantity_annotation_ast(annotation: ast.expr) -> QuantityTypeInfo:
     match annotation:
         case ast.Subscript(
             value=ast.Name(id="Quantity"),
