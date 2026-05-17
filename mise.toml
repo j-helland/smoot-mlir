@@ -14,7 +14,6 @@ config_roots = [
 ]
 
 [env]
-UNITS_OPT = "{{config_root}}/build-arm64/tools/units-opt"
 UV_FROZEN = true
 
 [tasks.shell]

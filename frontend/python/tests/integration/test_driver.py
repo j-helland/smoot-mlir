@@ -1,13 +1,12 @@
 import pytest
-from syrupy.assertion import SnapshotAssertion
 
 from units import Quantity, Unit, UnitsCompileError
 from units.ast_parser import transform_ast
-from units.driver import UnitsOpt
+from units.driver import NativeBackend
 from units.mlir_emit import emit_mlir
 
 
-def test_run_units_opt_happy_path(snapshot: SnapshotAssertion):
+def test_run_backend_happy_path():
     def distance(
         velocity: Quantity[float, Unit("meter / second")],
         dt: Quantity[float, Unit("second")],
@@ -16,10 +15,8 @@ def test_run_units_opt_happy_path(snapshot: SnapshotAssertion):
 
     func_ast = transform_ast(distance)
     units_mlir = emit_mlir(func_ast)
-    units_opt = UnitsOpt.default()
-    mlir = units_opt.run_units_opt(units_mlir)
 
-    assert mlir == snapshot
+    NativeBackend.default().verify_mlir(units_mlir)
 
 
 def test_run_units_opt_invalid():
@@ -33,13 +30,11 @@ def test_run_units_opt_invalid():
 
     func_ast = transform_ast(distance_invalid)
     units_mlir = emit_mlir(func_ast)
-    units_opt = UnitsOpt.default()
 
     with pytest.raises(UnitsCompileError):
-        units_opt.run_units_opt(units_mlir)
+        NativeBackend.default().verify_mlir(units_mlir)
 
 
 def test_run_units_opt_not_mlir():
-    units_opt = UnitsOpt.default()
     with pytest.raises(UnitsCompileError):
-        units_opt.run_units_opt("hello")
+        NativeBackend.default().verify_mlir("hello")

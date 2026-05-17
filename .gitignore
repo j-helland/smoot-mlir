@@ -1,3 +1,6 @@
 build*/
 .venv/
 docs/
+
+# nix flake checks
+result
