@@ -1,27 +1,32 @@
-pub(crate) fn mul_units(lhs: &str, rhs: &str) -> Result<String, String> {
-    if lhs.is_empty() || lhs == "dimensionless" {
-        return Ok(rhs.to_string());
+use crate::unit::Unit;
+
+pub(crate) fn mul_units(lhs: &Unit, rhs: &Unit) -> Result<Unit, String> {
+    if lhs.expression.is_empty() || lhs.expression == "dimensionless" {
+        return Ok(rhs.clone());
     }
 
-    if rhs.is_empty() || rhs == "dimensionless" {
-        return Ok(lhs.to_string());
+    if rhs.expression.is_empty() || rhs.expression == "dimensionless" {
+        return Ok(lhs.clone());
     }
 
-    if lhs == "meter / second" && rhs == "second" {
-        return Ok("meter".to_string());
+    if lhs.expression == "meter / second" && rhs.expression == "second" {
+        return Ok(Unit::parse("meter"));
     }
 
-    if lhs == "second" && rhs == "meter / second" {
-        return Ok("meter".to_string());
+    if lhs.expression == "second" && rhs.expression == "meter / second" {
+        return Ok(Unit::parse("meter"));
     }
 
-    Ok(format!("{lhs} * {rhs}"))
+    Ok(Unit::parse(&format!(
+        "{} * {}",
+        lhs.expression, rhs.expression
+    )))
 }
 
-pub(crate) fn add_units(lhs: &str, rhs: &str) -> Result<String, String> {
+pub(crate) fn add_units(lhs: &Unit, rhs: &Unit) -> Result<Unit, String> {
     if lhs == rhs {
-        Ok(lhs.to_string())
+        Ok(lhs.clone())
     } else {
-        Err(format!("cannot add units `{lhs}` and `{rhs}`"))
+        Err(format!("cannot add units `{lhs:?}` and `{rhs:?}`"))
     }
 }

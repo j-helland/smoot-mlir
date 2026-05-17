@@ -5,9 +5,11 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpImplementation.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/LogicalResult.h"
+#include <mlir/Support/LLVM.h>
 #include <cassert>
 
 namespace units = mlir::units;
@@ -71,6 +73,38 @@ llvm::LogicalResult units::ConstOp::verify() {
   return mlir::success();
 }
 
+static llvm::FailureOr<units::UnitAttr> applyBinaryUnitOp(
+    const units::UnitAttr &lhs, const units::UnitAttr &rhs,
+    llvm::function_ref<llvm::Expected<units::algebra::Unit>(
+        const units::algebra::Unit &, const units::algebra::Unit &)>
+        op) {
+  auto lhsUnit = units::algebra::parse(lhs.getExpression());
+  if (!lhsUnit) {
+    llvm::consumeError(lhsUnit.takeError());
+    return llvm::failure();
+  }
+
+  auto rhsUnit = units::algebra::parse(rhs.getExpression());
+  if (!rhsUnit) {
+    llvm::consumeError(rhsUnit.takeError());
+    return llvm::failure();
+  }
+
+  auto resultUnit = op(*lhsUnit, *rhsUnit);
+  if (!resultUnit) {
+    llvm::consumeError(resultUnit.takeError());
+    return llvm::failure();
+  }
+
+  auto resultExpression = units::algebra::format(*resultUnit);
+  if (!resultExpression) {
+    llvm::consumeError(resultExpression.takeError());
+    return llvm::failure();
+  }
+
+  return units::UnitAttr::get(lhs.getContext(), *resultExpression);
+}
+
 //==================================================
 // MulOp
 //==================================================
@@ -79,14 +113,7 @@ llvm::LogicalResult units::ConstOp::verify() {
  */
 static llvm::FailureOr<units::UnitAttr> mulUnits(units::UnitAttr const &lhs,
                                                  units::UnitAttr const &rhs) {
-  auto result =
-      units::algebra::multiply(lhs.getExpression(), rhs.getExpression());
-  if (!result) {
-    llvm::consumeError(result.takeError());
-    return llvm::failure();
-  }
-
-  return units::UnitAttr::get(lhs.getContext(), *result);
+  return applyBinaryUnitOp(lhs, rhs, units::algebra::multiply);
 }
 
 /**
@@ -193,12 +220,7 @@ void units::MulOp::print(mlir::OpAsmPrinter &printer) {
 //==================================================
 static llvm::FailureOr<units::UnitAttr> addUnits(units::UnitAttr const &lhs,
                                                  units::UnitAttr const &rhs) {
-  auto result = units::algebra::add(lhs.getExpression(), rhs.getExpression());
-  if (!result) {
-    llvm::consumeError(result.takeError());
-    return llvm::failure();
-  }
-  return units::UnitAttr::get(lhs.getContext(), *result);
+  return applyBinaryUnitOp(lhs, rhs, units::algebra::add);
 }
 
 /**

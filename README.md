@@ -75,3 +75,6 @@ cmake -S . -B build-arm64 \
   -DUNITS_ENABLE_ASAN=ON \
   -DUNITS_ENABLE_UBSAN=ON
 ```
+
+# TODOs
+- [ ] Use `cbindgen` in Rust core to generate header instead of manually maintaining.

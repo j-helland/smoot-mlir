@@ -2,7 +2,6 @@
 
 #include "mlir/IR/MLIRContext.h"
 #include "gtest/gtest.h"
-#include <cstdint>
 
 namespace {
 

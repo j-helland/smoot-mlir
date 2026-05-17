@@ -11,7 +11,6 @@ target_link_libraries(UnitsDialectTests
   MLIRUnits
   MLIRIR
   MLIRSupport
-  GTest::gtest
   GTest::gtest_main
 )
 
