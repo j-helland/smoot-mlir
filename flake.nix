@@ -31,7 +31,12 @@
       ];
     };
 
-    backendEnv = {
+    uvEnv = {
+      UV_PYTHON = "${pkgs.python314}/bin/python3";
+      UV_PYTHON_DOWNLOADS = "never";
+    };
+
+    backendEnv = uvEnv // {
       CC = "${llvm.clang}/bin/clang";
       CXX = "${llvm.clang}/bin/clang++";
       AR = "${llvm.llvm}/bin/llvm-ar";
@@ -42,13 +47,15 @@
       MLIR_TABLEGEN_EXE = "${llvm.tblgen}/bin/mlir-tblgen";
       CLANG_FORMAT_EXE = "${llvm.clang-tools}/bin/clang-format";
       CLANG_TIDY_EXE = "${llvm.clang-tools}/bin/clang-tidy";
-      UV_PYTHON = "${pkgs.python314}/bin/python3";
-      UV_PYTHON_DOWNLOADS = "never";
     };
 
-    exportBackendEnv = lib.concatStringsSep "\n" (
-      lib.mapAttrsToList (name: value: "export ${name}=\"${value}\"") backendEnv
-    );
+    exportEnv = env:
+      lib.concatStringsSep "\n" (
+        lib.mapAttrsToList (name: value: "export ${name}=\"${value}\"") env
+      );
+
+    exportBackendEnv = exportEnv backendEnv;
+    exportUvEnv = exportEnv uvEnv;
 
     backendNativeBuildInputs = [
       pkgs.cmake
@@ -71,12 +78,8 @@
       llvm.mlir
     ];
 
-  in {
-    #==================================================
-    # Backend tests
-    #==================================================
-    checks.${system}.backend = llvm.stdenv.mkDerivation {
-      pname = "units-backend-check";
+    backendPackage = llvm.stdenv.mkDerivation {
+      pname = "units-backend";
       version = "0.0.0";
       src = self;
 
@@ -98,21 +101,87 @@
         export UV_CACHE_DIR="$TMPDIR/uv-cache"
 
         mise trust --all --yes
-        mise run --skip-tools test-backend
-        mise run --skip-tools test-backend-sanitizers
+        mise run --skip-tools build-backend
 
         runHook postBuild
       '';
 
       checkPhase = ''
         runHook preCheck
+
+        ${exportBackendEnv}
+        export CARGO_HOME="$TMPDIR/cargo-home"
+        export MISE_CACHE_DIR="$TMPDIR/mise-cache"
+        export MISE_CONFIG_DIR="$TMPDIR/mise-config"
+        export MISE_DATA_DIR="$TMPDIR/mise-data"
+        export MISE_STATE_DIR="$TMPDIR/mise-state"
+        export UV_CACHE_DIR="$TMPDIR/uv-cache"
+
+        mise run --skip-tools test-backend
+
         runHook postCheck
       '';
 
       installPhase = ''
-        mkdir -p "$out"
-        touch "$out/backend-check-passed"
+        runHook preInstall
+
+        mkdir -p "$out/bin" "$out/python/units"
+        cp build-arm64/tools/units-opt "$out/bin/units-opt"
+        cp frontend/python/src/units/_units_backend*.so "$out/python/units/"
+
+        runHook postInstall
       '';
+    };
+
+    mkFrontendCheck = name: task: llvm.stdenv.mkDerivation {
+      pname = "units-${name}-check";
+      version = "0.0.0";
+      src = self;
+
+      nativeBuildInputs = [
+        pkgs.mise
+        pkgs.uv
+        pkgs.python314
+        backendPackage
+      ];
+
+      dontConfigure = true;
+
+      buildPhase = ''
+        runHook preBuild
+
+        export HOME="$TMPDIR/home"
+        export MISE_CACHE_DIR="$TMPDIR/mise-cache"
+        export MISE_CONFIG_DIR="$TMPDIR/mise-config"
+        export MISE_DATA_DIR="$TMPDIR/mise-data"
+        export MISE_STATE_DIR="$TMPDIR/mise-state"
+        export UV_CACHE_DIR="$TMPDIR/uv-cache"
+        ${exportUvEnv}
+
+        mkdir -p "$HOME" frontend/python/src/units
+        cp ${backendPackage}/python/units/_units_backend*.so frontend/python/src/units/
+
+        mise trust --all --yes
+        mise run --skip-tools --skip-deps ${task}
+
+        runHook postBuild
+      '';
+
+      installPhase = ''
+        mkdir -p "$out"
+        touch "$out/${name}-check-passed"
+      '';
+    };
+
+  in {
+    packages.${system}.backend = backendPackage;
+
+    #==================================================
+    # Checks
+    #==================================================
+    checks.${system} = {
+      backend = backendPackage;
+      frontend = mkFrontendCheck "frontend" "//frontend/python:test";
     };
 
     #==================================================
