@@ -54,7 +54,6 @@
         llvm.tblgen
 
         # testing
-        pkgs.python3Packages.lit
         pkgs.gtest
 
         # frontend
@@ -71,6 +70,10 @@
         export CLANG_TIDY_EXE="${llvm.clang-tools}/bin/clang-tidy"
 
         export PATH="${llvm.clang-tools}/bin:${llvm.mlir}/bin:${llvm.llvm}/bin:$PATH"
+
+        # Make sure that Python from any nix managed tools can't interfere with
+        # the rest of the project, which uses uv to manage Python.
+        unset PYTHONPATH
       '';
     };
   };
