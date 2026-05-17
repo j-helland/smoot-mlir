@@ -1,5 +1,4 @@
 from __future__ import annotations
-from units.diagnostics import Diagnostic
 
 import functools
 import shutil
@@ -12,6 +11,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich import print
 
 from units import UnitsCompileError
+from units.diagnostics import Diagnostic
+from units.mlir_emit import GeneratedModule
 
 
 def _parse_command_exists(value: str | Path) -> str:
@@ -40,12 +41,17 @@ class UnitsOpt(BaseSettings):
     def default(cls) -> UnitsOpt:
         return cls()
 
-    def run_units_opt(self, input: str) -> str:
+    def run_units_opt(self, input: GeneratedModule | str) -> str:
         """Run units-mlir opt passes and return the emitted IR."""
+        if isinstance(input, GeneratedModule):
+            text = input.text
+        else:
+            text = input
+
         cmd = (self.units_opt,)
         result = subprocess.run(
             cmd,
-            input=input,
+            input=text,
             text=True,
             capture_output=True,
         )

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeAlias
+from typing import Mapping, TypeAlias
 
 from units import UnitsCompileError
 from units.annotations import QuantityTypeInfo, Unit
 from units.diagnostics import Diagnostic
 from units.ir import Binary, Expr, Function, Name, Node, Operator, Return, Stmt
+from units.span import SourceSpan
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,9 +20,16 @@ class MlirValue:
 
 
 MlirSymbolTableType: TypeAlias = dict[str, MlirValue]
+LineMapType: TypeAlias = dict[int, SourceSpan]
 
 
-def emit_mlir(node: Node) -> str:
+@dataclass(frozen=True, slots=True)
+class GeneratedModule:
+    text: str
+    line_map: Mapping[int, SourceSpan]
+
+
+def emit_mlir(node: Node) -> GeneratedModule:
     """Emit Units MLIR dialect."""
     emitter = MlirEmitter()
     return emitter.emit_module(node)
@@ -31,13 +39,18 @@ def emit_mlir(node: Node) -> str:
 class MlirEmitter:
     _next_ssa_id: int = 0
     _lines: list[str] = field(default_factory=list)
+    _line_map: LineMapType = field(default_factory=dict)
     _values: dict[Expr, str] = field(default_factory=dict)
 
-    def emit_module(self, node: Node) -> str:
-        self._lines.append("module {")
+    def emit_module(self, node: Node) -> GeneratedModule:
+        self._append_line("module {")
         self.emit_node(node)
-        self._lines.append("}")
-        return "\n".join(self._lines) + "\n"
+        self._append_line("}")
+
+        return GeneratedModule(
+            text="\n".join(self._lines) + "\n",
+            line_map=dict(self._line_map),
+        )
 
     def emit_node(self, node: Node) -> None:
         match node:
@@ -54,7 +67,7 @@ class MlirEmitter:
             for name, type_info in sig.parameters
         )
 
-        self._lines.append(
+        self._append_line(
             f"  func.func @{sig.name}({params}) -> {emit_quantity_type(sig.result)} {{"
         )
 
@@ -68,8 +81,8 @@ class MlirEmitter:
                 symbols=symbols,
                 return_type=function.signature.result,
             )
-            self._lines.append(f"    {value}")
-        self._lines.append("  }")
+            self._append_line(f"    {value}")
+        self._append_line("  }")
 
     def emit_stmt(
         self,
@@ -100,12 +113,10 @@ class MlirEmitter:
                 lhs_type = require_type(lhs_val)
                 rhs_type = require_type(rhs_val)
 
-                result_name = self.get_next_ssa_id()
+                result_name = self._get_next_ssa_id()
 
-                self._lines.append(
-                    f"    {result_name} = {mlir_op} {lhs_val}, {rhs_val}"
-                )
-                self._lines.append(
+                self._append_line(f"    {result_name} = {mlir_op} {lhs_val}, {rhs_val}")
+                self._append_line(
                     f"      : {emit_quantity_type(lhs_type)}, {emit_quantity_type(rhs_type)}"
                 )
 
@@ -115,10 +126,15 @@ class MlirEmitter:
                 msg = f"unsupported IR expression: {expr!r}"
                 raise UnitsCompileError(Diagnostic.emit(msg))
 
-    def get_next_ssa_id(self) -> str:
+    def _get_next_ssa_id(self) -> str:
         value = f"%{self._next_ssa_id}"
         self._next_ssa_id += 1
         return value
+
+    def _append_line(self, line: str, span: SourceSpan | None = None) -> None:
+        self._lines.append(line)
+        if span is not None:
+            self._line_map[len(self._lines)] = span
 
 
 def emit_quantity_type(type_info: QuantityTypeInfo) -> str:
