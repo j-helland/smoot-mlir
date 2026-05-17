@@ -11,4 +11,4 @@ target_link_libraries(UnitsRsTests
   GTest::gtest_main
 )
 
-gtest_discover_tests(UnitsRsTests)
+gtest_add_tests(TARGET UnitsRsTests)

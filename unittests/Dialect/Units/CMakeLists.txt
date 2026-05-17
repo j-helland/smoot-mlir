@@ -14,4 +14,4 @@ target_link_libraries(UnitsDialectTests
   GTest::gtest_main
 )
 
-gtest_discover_tests(UnitsDialectTests)
+gtest_add_tests(TARGET UnitsDialectTests)

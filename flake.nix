@@ -12,6 +12,7 @@
     nixpkgs,
     rust-overlay,
   }: let
+    lib = nixpkgs.lib;
     system = "aarch64-darwin";
     pkgs = import nixpkgs {
       inherit system;
@@ -30,44 +31,109 @@
       ];
     };
 
+    backendEnv = {
+      CC = "${llvm.clang}/bin/clang";
+      CXX = "${llvm.clang}/bin/clang++";
+      AR = "${llvm.llvm}/bin/llvm-ar";
+      RANLIB = "${llvm.llvm}/bin/llvm-ranlib";
+      NM = "${llvm.llvm}/bin/llvm-nm";
+      LLVM_DIR = "${llvm.llvm.dev}/lib/cmake/llvm";
+      MLIR_DIR = "${llvm.mlir.dev}/lib/cmake/mlir";
+      MLIR_TABLEGEN_EXE = "${llvm.tblgen}/bin/mlir-tblgen";
+      CLANG_FORMAT_EXE = "${llvm.clang-tools}/bin/clang-format";
+      CLANG_TIDY_EXE = "${llvm.clang-tools}/bin/clang-tidy";
+      UV_PYTHON = "${pkgs.python314}/bin/python3";
+      UV_PYTHON_DOWNLOADS = "never";
+    };
+
+    exportBackendEnv = lib.concatStringsSep "\n" (
+      lib.mapAttrsToList (name: value: "export ${name}=\"${value}\"") backendEnv
+    );
+
+    backendNativeBuildInputs = [
+      pkgs.cmake
+      pkgs.ninja
+      pkgs.mise
+      pkgs.uv
+      pkgs.python314
+      rustToolChain
+      llvm.llvm
+      llvm.clang
+      llvm.clang-tools
+      llvm.bintools
+      llvm.mlir
+      llvm.tblgen
+    ];
+
+    backendBuildInputs = [
+      pkgs.gtest
+      llvm.llvm
+      llvm.mlir
+    ];
+
   in {
+    #==================================================
+    # Backend tests
+    #==================================================
+    checks.${system}.backend = llvm.stdenv.mkDerivation {
+      pname = "units-backend-check";
+      version = "0.0.0";
+      src = self;
+
+      nativeBuildInputs = backendNativeBuildInputs;
+      buildInputs = backendBuildInputs;
+
+      doCheck = true;
+      dontConfigure = true;
+
+      buildPhase = ''
+        runHook preBuild
+
+        ${exportBackendEnv}
+        export CARGO_HOME="$TMPDIR/cargo-home"
+        export MISE_CACHE_DIR="$TMPDIR/mise-cache"
+        export MISE_CONFIG_DIR="$TMPDIR/mise-config"
+        export MISE_DATA_DIR="$TMPDIR/mise-data"
+        export MISE_STATE_DIR="$TMPDIR/mise-state"
+        export UV_CACHE_DIR="$TMPDIR/uv-cache"
+
+        mise trust --all --yes
+        mise run --skip-tools test-backend
+        mise run --skip-tools test-backend-sanitizers
+
+        runHook postBuild
+      '';
+
+      checkPhase = ''
+        runHook preCheck
+        runHook postCheck
+      '';
+
+      installPhase = ''
+        mkdir -p "$out"
+        touch "$out/backend-check-passed"
+      '';
+    };
+
+    #==================================================
+    # Dev shell
+    #==================================================
     devShells.${system}.default = pkgs.mkShell {
-      packages = [
-        # dev env
-        pkgs.git
-        pkgs.fish
-        pkgs.mise
-        pkgs.starship
-        pkgs.usage
+      packages =
+        [
+          # dev env
+          pkgs.git
+          pkgs.fish
+          pkgs.starship
+          pkgs.usage
 
-        # Rust core
-        rustToolChain
-
-        # MLIR
-        pkgs.cmake
-        pkgs.ninja
-        pkgs.ccache
-        llvm.llvm
-        llvm.clang
-        llvm.clang-tools
-        llvm.mlir
-        llvm.tblgen
-
-        # testing
-        pkgs.gtest
-
-        # frontend
-        pkgs.uv
-      ];
+          pkgs.ccache
+        ]
+        ++ backendNativeBuildInputs
+        ++ backendBuildInputs;
 
       shellHook = ''
-        export CC="${llvm.clang}/bin/clang"
-        export CXX="${llvm.clang}/bin/clang++"
-        export LLVM_DIR="${llvm.llvm.dev}/lib/cmake/llvm"
-        export MLIR_DIR="${llvm.mlir.dev}/lib/cmake/mlir"
-        export MLIR_TABLEGEN_EXE="${llvm.tblgen}/bin/mlir-tblgen"
-        export CLANG_FORMAT_EXE="${llvm.clang-tools}/bin/clang-format"
-        export CLANG_TIDY_EXE="${llvm.clang-tools}/bin/clang-tidy"
+        ${exportBackendEnv}
 
         export PATH="${llvm.clang-tools}/bin:${llvm.mlir}/bin:${llvm.llvm}/bin:$PATH"
 

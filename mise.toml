@@ -80,10 +80,15 @@ cmake \
 run = """
 PYTHON_EXE="$(uv python find)"
 PYBIND11_DIR="$(uv run -- python -m pybind11 --cmakedir)"
-LIT_EXE="$(uv run -- command -v lit)"
+LIT_EXE="$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')"
 
 cmake -S . -B build-arm64 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_C_COMPILER="$CC" \
+    -DCMAKE_CXX_COMPILER="$CXX" \
+    -DCMAKE_AR="$AR" \
+    -DCMAKE_RANLIB="$RANLIB" \
+    -DCMAKE_NM="$NM" \
     -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
     -DPython_EXECUTABLE="$PYTHON_EXE" \
     -Dpybind11_DIR="$PYBIND11_DIR" \
@@ -116,10 +121,15 @@ description = "Build the C++ backend with AddressSanitizer and UBSan"
 run = """
 PYTHON_EXE="$(uv python find)"
 PYBIND11_DIR="$(uv run -- python -m pybind11 --cmakedir)"
-LIT_EXE="$(uv run -- command -v lit)"
+LIT_EXE="$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')"
 
 cmake -S . -B build-arm64-sanitizers \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+    -DCMAKE_C_COMPILER="$CC" \
+    -DCMAKE_CXX_COMPILER="$CXX" \
+    -DCMAKE_AR="$AR" \
+    -DCMAKE_RANLIB="$RANLIB" \
+    -DCMAKE_NM="$NM" \
     -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
     -DPython_EXECUTABLE="$PYTHON_EXE" \
     -Dpybind11_DIR="$PYBIND11_DIR" \
