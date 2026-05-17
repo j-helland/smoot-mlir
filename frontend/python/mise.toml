@@ -5,6 +5,10 @@ ty = "0.0.35"
 [settings]
 experimental = true
 
+[env]
+# Use uv.lock for all commands
+UV_FROZEN=1
+
 [tasks.test]
 depends = ["//:build-backend"]
 run = "uv run -- pytest"
