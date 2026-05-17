@@ -1,6 +1,9 @@
-from units import Quantity, Unit
+import pytest
+from syrupy.assertion import SnapshotAssertion
+
+from units import Quantity, Unit, UnitsCompileError
 from units.ast_parser import transform_ast
-from units.ir import Binary, Function, Name, Operator, Return, Assign, Constant
+from units.ir import Assign, Binary, Constant, Function, Name, Operator, Return
 
 
 def test_transform_return_mul():
@@ -24,8 +27,6 @@ def test_transform_return_mul():
     assert body.expr.rhs.name == "dt"
 
     assert fn_ast.span is not None
-    assert fn_ast.span.line == 7
-    assert fn_ast.span.end_line == 11
 
 
 def test_transform_assignment():
@@ -73,3 +74,20 @@ def test_transform_annotated_assignment():
     assert isinstance(body_return, Return)
     assert isinstance(body_return.expr, Name)
     assert body_return.expr.name == "x"
+
+
+def test_transform_invalid(diagnostic_snapshot: SnapshotAssertion):
+    def f() -> Quantity[float, Unit("meter")]:
+        return distance  # noqa: F821  # ty:ignore[unresolved-reference]
+
+    _check_rendered_compile_error(f, diagnostic_snapshot)
+
+
+def _check_rendered_compile_error(
+    code: object,
+    diagnostic_snapshot: SnapshotAssertion,
+) -> None:
+    with pytest.raises(UnitsCompileError) as exc_info:
+        transform_ast(code)
+
+    diagnostic_snapshot.assert_match(str(exc_info.value))

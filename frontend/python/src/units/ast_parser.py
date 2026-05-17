@@ -47,10 +47,7 @@ def transform_ast(value: object) -> Node:
 
 def _transform_function(fn: FunctionType) -> Function:
     signature = FunctionSignature.extract(fn)
-    function_def = _get_function_def(fn)
-    filename = inspect.getsourcefile(fn) or UNKNOWN_SOURCE_FILE
-    _, start_line = inspect.getsourcelines(fn)
-    lineno_offset = start_line - 1  # inspect returns 1-based
+    parsed = _get_function_def(fn)
 
     symbol_table = {
         name: Symbol(
@@ -58,31 +55,54 @@ def _transform_function(fn: FunctionType) -> Function:
         )
         for name, decl_type in signature.parameters
     }
-    span_ctx = SourceSpan.Ctx(filename=filename, lineno_offset=lineno_offset)
     ctx = _AstTransformCtx(
         symbol_table=symbol_table,
-        span=span_ctx,
+        span=parsed.span_ctx,
         globals=fn.__globals__,
     )
 
-    body = _transform_body(function_def, ctx)
+    body = _transform_body(parsed.function_def, ctx)
     return Function(
         signature=signature,
         body=body,
-        span=SourceSpan.from_ast(function_def, span_ctx),
+        span=SourceSpan.from_ast(parsed.function_def, parsed.span_ctx),
     )
 
 
-def _get_function_def(fn: Callable) -> ast.FunctionDef:
-    source = textwrap.dedent(inspect.getsource(fn))
-    module = ast.parse(source)
+@dataclass(frozen=True, slots=True)
+class _ParsedFunction:
+    function_def: ast.FunctionDef
+    span_ctx: SourceSpan.Ctx
+
+
+def _get_function_def(fn: Callable) -> _ParsedFunction:
+    filename = inspect.getsourcefile(fn) or UNKNOWN_SOURCE_FILE
+    source_lines, start_line = inspect.getsourcelines(fn)
+
+    source = "".join(source_lines)
+    dedented = textwrap.dedent(source)
+    module = ast.parse(dedented)
 
     function_defs = [node for node in module.body if isinstance(node, ast.FunctionDef)]
     if len(function_defs) != 1:
         msg = "expected exactly one function definition"
         raise UnitsCompileError(msg)
 
-    return function_defs[0]
+    # Inspect is 1-indexed
+    # AST lines are relative to the dedent
+    lineno_offset = start_line - 1
+
+    # How much dedent removed from the whole snippet
+    column_offset = len(source_lines[0]) - len(source_lines[0].lstrip())
+
+    return _ParsedFunction(
+        function_def=function_defs[0],
+        span_ctx=SourceSpan.Ctx(
+            filename=filename,
+            lineno_offset=lineno_offset,
+            column_offset=column_offset,
+        ),
+    )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

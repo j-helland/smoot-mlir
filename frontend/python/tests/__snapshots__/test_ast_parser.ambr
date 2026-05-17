@@ -1,0 +1,8 @@
+# serializer version: 1
+# name: test_transform_invalid
+  '''
+  [PATH]/tests/test_ast_parser.py:81:16: unknown variable 'distance'
+  	        return distance  # noqa: F821  # ty:ignore[unresolved-reference]
+  	               ^^^^^^^^
+  '''
+# ---
