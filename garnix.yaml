@@ -1,7 +1,7 @@
 builds:
  exclude: []
  include:
-   - checks.aarch64-darwin.backend
-   - checks.aarch64-darwin.frontend
+   - checks.x86_64-linux.backend
+   - checks.x86_64-linux.frontend
    # NOTE(jwh): only backend is currently a reusable build artifact
-   - packages.aarch64-darwin.backend
+   - packages.x86_64-linux.backend

@@ -36,244 +36,251 @@
     }:
     let
       lib = nixpkgs.lib;
-      system = "aarch64-darwin";
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [
-          (import rust-overlay)
-        ];
-      };
-
-      llvm = pkgs.llvmPackages_22;
-
-      rustToolChain = pkgs.rust-bin.stable."1.95.0".default.override {
-        extensions = [
-          "rust-src"
-          "rustfmt"
-          "clippy"
-        ];
-      };
-
-      workspace = uv2nix.lib.workspace.loadWorkspace {
-        workspaceRoot = ./.;
-      };
-
-      uvOverlay = workspace.mkPyprojectOverlay {
-        sourcePreference = "wheel";
-      };
-
-      python = pkgs.python314;
-
-      pythonBase = pkgs.callPackage pyproject-nix.build.packages {
-        inherit python;
-      };
-
-      pythonSet = pythonBase.overrideScope (
-        lib.composeManyExtensions [
-          pyproject-build-systems.overlays.wheel
-          uvOverlay
-        ]
-      );
-
-      devtoolsPythonEnv = pythonSet.mkVirtualEnv "units-devtools-env" {
-        devtools = [ "dev" ];
-      };
-
-      frontendPythonEnv = pythonSet.mkVirtualEnv "units-frontend-test-env" {
-        units = [ "dev" ];
-      };
-
-      uvEnv = {
-        UV_PYTHON = "${python}/bin/python3";
-        UV_PYTHON_DOWNLOADS = "never";
-      };
-
-      backendEnv = uvEnv // {
-        CC = "${llvm.clang}/bin/clang";
-        CXX = "${llvm.clang}/bin/clang++";
-        AR = "${llvm.llvm}/bin/llvm-ar";
-        RANLIB = "${llvm.llvm}/bin/llvm-ranlib";
-        NM = "${llvm.llvm}/bin/llvm-nm";
-        LLVM_DIR = "${llvm.llvm.dev}/lib/cmake/llvm";
-        MLIR_DIR = "${llvm.mlir.dev}/lib/cmake/mlir";
-        MLIR_TABLEGEN_EXE = "${llvm.tblgen}/bin/mlir-tblgen";
-        CLANG_FORMAT_EXE = "${llvm.clang-tools}/bin/clang-format";
-        CLANG_TIDY_EXE = "${llvm.clang-tools}/bin/clang-tidy";
-      };
-
-      exportEnv =
-        env:
-        lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "export ${name}=\"${value}\"") env);
-
-      exportBackendEnv = exportEnv backendEnv;
-      exportUvEnv = exportEnv uvEnv;
-
-      backendNativeBuildInputs = [
-        pkgs.cmake
-        pkgs.ninja
-        pkgs.mise
-        pkgs.uv
-        devtoolsPythonEnv
-        rustToolChain
-        llvm.llvm
-        llvm.clang
-        llvm.clang-tools
-        llvm.bintools
-        llvm.mlir
-        llvm.tblgen
+      systems = [
+        "aarch64-darwin"
+        "x86_64-linux"
       ];
 
-      backendBuildInputs = [
-        pkgs.gtest
-        llvm.llvm
-        llvm.mlir
-      ];
+      forAllSystems = lib.genAttrs systems;
 
-      exportPythonToolEnv = ''
-        export PYTHON_EXE="${devtoolsPythonEnv}/bin/python3"
-        export PYBIND11_DIR="$("$PYTHON_EXE" -m pybind11 --cmakedir)"
-        export LIT_EXE="${devtoolsPythonEnv}/bin/lit"
-      '';
+      mkSystemOutputs =
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [
+              (import rust-overlay)
+            ];
+          };
 
-      backendPackage = llvm.stdenv.mkDerivation {
-        pname = "units-backend";
-        version = "0.0.0";
-        src = self;
+          llvm = pkgs.llvmPackages_22;
 
-        nativeBuildInputs = backendNativeBuildInputs;
-        buildInputs = backendBuildInputs;
+          rustToolChain = pkgs.rust-bin.stable."1.95.0".default.override {
+            extensions = [
+              "rust-src"
+              "rustfmt"
+              "clippy"
+            ];
+          };
 
-        doCheck = true;
-        dontConfigure = true;
+          workspace = uv2nix.lib.workspace.loadWorkspace {
+            workspaceRoot = ./.;
+          };
 
-        buildPhase = ''
-          runHook preBuild
+          uvOverlay = workspace.mkPyprojectOverlay {
+            sourcePreference = "wheel";
+          };
 
-          ${exportBackendEnv}
-          ${exportPythonToolEnv}
-          export CARGO_HOME="$TMPDIR/cargo-home"
-          export MISE_CACHE_DIR="$TMPDIR/mise-cache"
-          export MISE_CONFIG_DIR="$TMPDIR/mise-config"
-          export MISE_DATA_DIR="$TMPDIR/mise-data"
-          export MISE_STATE_DIR="$TMPDIR/mise-state"
-          export UV_CACHE_DIR="$TMPDIR/uv-cache"
+          python = pkgs.python314;
 
-          mise trust --all --yes
-          mise run --skip-tools build-backend
+          pythonBase = pkgs.callPackage pyproject-nix.build.packages {
+            inherit python;
+          };
 
-          runHook postBuild
-        '';
+          pythonSet = pythonBase.overrideScope (
+            lib.composeManyExtensions [
+              pyproject-build-systems.overlays.wheel
+              uvOverlay
+            ]
+          );
 
-        checkPhase = ''
-          runHook preCheck
+          devtoolsPythonEnv = pythonSet.mkVirtualEnv "units-devtools-env" {
+            devtools = [ "dev" ];
+          };
 
-          ${exportBackendEnv}
-          ${exportPythonToolEnv}
-          export CARGO_HOME="$TMPDIR/cargo-home"
-          export MISE_CACHE_DIR="$TMPDIR/mise-cache"
-          export MISE_CONFIG_DIR="$TMPDIR/mise-config"
-          export MISE_DATA_DIR="$TMPDIR/mise-data"
-          export MISE_STATE_DIR="$TMPDIR/mise-state"
-          export UV_CACHE_DIR="$TMPDIR/uv-cache"
+          frontendPythonEnv = pythonSet.mkVirtualEnv "units-frontend-test-env" {
+            units = [ "dev" ];
+          };
 
-          mise run --skip-tools test-backend
+          uvEnv = {
+            UV_PYTHON = "${python}/bin/python3";
+            UV_PYTHON_DOWNLOADS = "never";
+          };
 
-          runHook postCheck
-        '';
+          backendEnv = uvEnv // {
+            CC = "${llvm.clang}/bin/clang";
+            CXX = "${llvm.clang}/bin/clang++";
+            AR = "${llvm.llvm}/bin/llvm-ar";
+            RANLIB = "${llvm.llvm}/bin/llvm-ranlib";
+            NM = "${llvm.llvm}/bin/llvm-nm";
+            LLVM_DIR = "${llvm.llvm.dev}/lib/cmake/llvm";
+            MLIR_DIR = "${llvm.mlir.dev}/lib/cmake/mlir";
+            MLIR_TABLEGEN_EXE = "${llvm.tblgen}/bin/mlir-tblgen";
+            CLANG_FORMAT_EXE = "${llvm.clang-tools}/bin/clang-format";
+            CLANG_TIDY_EXE = "${llvm.clang-tools}/bin/clang-tidy";
+          };
 
-        installPhase = ''
-          runHook preInstall
+          exportEnv =
+            env:
+            lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "export ${name}=\"${value}\"") env);
 
-          mkdir -p "$out/bin" "$out/python/units"
-          cp build-arm64/tools/units-opt "$out/bin/units-opt"
-          cp frontend/python/src/units/_units_backend*.so "$out/python/units/"
+          exportBackendEnv = exportEnv backendEnv;
+          exportUvEnv = exportEnv uvEnv;
 
-          runHook postInstall
-        '';
-      };
-
-      mkFrontendCheck =
-        name: task:
-        llvm.stdenv.mkDerivation {
-          pname = "units-${name}-check";
-          version = "0.0.0";
-          src = self;
-
-          nativeBuildInputs = [
+          backendNativeBuildInputs = [
+            pkgs.cmake
+            pkgs.ninja
             pkgs.mise
-            frontendPythonEnv
-            backendPackage
+            pkgs.uv
+            devtoolsPythonEnv
+            rustToolChain
+            llvm.llvm
+            llvm.clang
+            llvm.clang-tools
+            llvm.bintools
+            llvm.mlir
+            llvm.tblgen
           ];
 
-          dontConfigure = true;
+          backendBuildInputs = [
+            pkgs.gtest
+            llvm.llvm
+            llvm.mlir
+          ];
 
-          buildPhase = ''
-            runHook preBuild
-
-            export HOME="$TMPDIR/home"
-            export MISE_CACHE_DIR="$TMPDIR/mise-cache"
-            export MISE_CONFIG_DIR="$TMPDIR/mise-config"
-            export MISE_DATA_DIR="$TMPDIR/mise-data"
-            export MISE_STATE_DIR="$TMPDIR/mise-state"
-            export UV_CACHE_DIR="$TMPDIR/uv-cache"
-            ${exportUvEnv}
-            export UNITS_NIX_PYTHON=1
-
-            mkdir -p "$HOME" frontend/python/src/units
-            cp ${backendPackage}/python/units/_units_backend*.so frontend/python/src/units/
-
-            mise trust --all --yes
-            mise run --skip-tools --skip-deps ${task}
-
-            runHook postBuild
+          exportPythonToolEnv = ''
+            export PYTHON_EXE="${devtoolsPythonEnv}/bin/python3"
+            export PYBIND11_DIR="$("$PYTHON_EXE" -m pybind11 --cmakedir)"
+            export LIT_EXE="${devtoolsPythonEnv}/bin/lit"
           '';
 
-          installPhase = ''
-            mkdir -p "$out"
-            touch "$out/${name}-check-passed"
-          '';
+          backendPackage = llvm.stdenv.mkDerivation {
+            pname = "units-backend";
+            version = "0.0.0";
+            src = self;
+
+            nativeBuildInputs = backendNativeBuildInputs;
+            buildInputs = backendBuildInputs;
+
+            doCheck = true;
+            dontConfigure = true;
+
+            buildPhase = ''
+              runHook preBuild
+
+              ${exportBackendEnv}
+              ${exportPythonToolEnv}
+              export CARGO_HOME="$TMPDIR/cargo-home"
+              export MISE_CACHE_DIR="$TMPDIR/mise-cache"
+              export MISE_CONFIG_DIR="$TMPDIR/mise-config"
+              export MISE_DATA_DIR="$TMPDIR/mise-data"
+              export MISE_STATE_DIR="$TMPDIR/mise-state"
+              export UV_CACHE_DIR="$TMPDIR/uv-cache"
+
+              mise trust --all --yes
+              mise run --skip-tools build-backend
+
+              runHook postBuild
+            '';
+
+            checkPhase = ''
+              runHook preCheck
+
+              ${exportBackendEnv}
+              ${exportPythonToolEnv}
+              export CARGO_HOME="$TMPDIR/cargo-home"
+              export MISE_CACHE_DIR="$TMPDIR/mise-cache"
+              export MISE_CONFIG_DIR="$TMPDIR/mise-config"
+              export MISE_DATA_DIR="$TMPDIR/mise-data"
+              export MISE_STATE_DIR="$TMPDIR/mise-state"
+              export UV_CACHE_DIR="$TMPDIR/uv-cache"
+
+              mise run --skip-tools test-backend
+
+              runHook postCheck
+            '';
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p "$out/bin" "$out/python/units"
+              cp build-arm64/tools/units-opt "$out/bin/units-opt"
+              cp frontend/python/src/units/_units_backend*.so "$out/python/units/"
+
+              runHook postInstall
+            '';
+          };
+
+          mkFrontendCheck =
+            name: task:
+            llvm.stdenv.mkDerivation {
+              pname = "units-${name}-check";
+              version = "0.0.0";
+              src = self;
+
+              nativeBuildInputs = [
+                pkgs.mise
+                frontendPythonEnv
+                backendPackage
+              ];
+
+              dontConfigure = true;
+
+              buildPhase = ''
+                runHook preBuild
+
+                export HOME="$TMPDIR/home"
+                export MISE_CACHE_DIR="$TMPDIR/mise-cache"
+                export MISE_CONFIG_DIR="$TMPDIR/mise-config"
+                export MISE_DATA_DIR="$TMPDIR/mise-data"
+                export MISE_STATE_DIR="$TMPDIR/mise-state"
+                export UV_CACHE_DIR="$TMPDIR/uv-cache"
+                ${exportUvEnv}
+                export UNITS_NIX_PYTHON=1
+
+                mkdir -p "$HOME" frontend/python/src/units
+                cp ${backendPackage}/python/units/_units_backend*.so frontend/python/src/units/
+
+                mise trust --all --yes
+                mise run --skip-tools --skip-deps ${task}
+
+                runHook postBuild
+              '';
+
+              installPhase = ''
+                mkdir -p "$out"
+                touch "$out/${name}-check-passed"
+              '';
+            };
+        in
+        {
+          packages.backend = backendPackage;
+
+          checks = {
+            backend = backendPackage;
+            frontend = mkFrontendCheck "frontend" "//frontend/python:test";
+          };
+
+          devShells.default = pkgs.mkShell {
+            packages = [
+              # dev env
+              pkgs.git
+              pkgs.fish
+              pkgs.starship
+              pkgs.usage
+
+              pkgs.ccache
+            ]
+            ++ backendNativeBuildInputs
+            ++ backendBuildInputs;
+
+            shellHook = ''
+              ${exportBackendEnv}
+
+              export PATH="${llvm.clang-tools}/bin:${llvm.mlir}/bin:${llvm.llvm}/bin:$PATH"
+
+              # Make sure that Python from any nix managed tools can't interfere with
+              # the rest of the project, which uses uv to manage Python.
+              unset PYTHONPATH
+            '';
+          };
         };
 
+      perSystem = forAllSystems mkSystemOutputs;
     in
     {
-      #==================================================
-      # Packages
-      #==================================================
-      packages.${system}.backend = backendPackage;
-
-      #==================================================
-      # Checks
-      #==================================================
-      checks.${system} = {
-        backend = backendPackage;
-        frontend = mkFrontendCheck "frontend" "//frontend/python:test";
-      };
-
-      #==================================================
-      # Dev shell
-      #==================================================
-      devShells.${system}.default = pkgs.mkShell {
-        packages = [
-          # dev env
-          pkgs.git
-          pkgs.fish
-          pkgs.starship
-          pkgs.usage
-
-          pkgs.ccache
-        ]
-        ++ backendNativeBuildInputs
-        ++ backendBuildInputs;
-
-        shellHook = ''
-          ${exportBackendEnv}
-
-          export PATH="${llvm.clang-tools}/bin:${llvm.mlir}/bin:${llvm.llvm}/bin:$PATH"
-
-          # Make sure that Python from any nix managed tools can't interfere with
-          # the rest of the project, which uses uv to manage Python.
-          unset PYTHONPATH
-        '';
-      };
+      packages = lib.mapAttrs (_system: outputs: outputs.packages) perSystem;
+      checks = lib.mapAttrs (_system: outputs: outputs.checks) perSystem;
+      devShells = lib.mapAttrs (_system: outputs: outputs.devShells) perSystem;
     };
 }
