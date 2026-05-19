@@ -1,5 +1,5 @@
 CompileFlags:
-  CompilationDatabase: build-arm64
+  CompilationDatabase: build
   Add:
     - -D__STDC_CONSTANT_MACROS
     - -D__STDC_FORMAT_MACROS

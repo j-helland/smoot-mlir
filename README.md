@@ -10,8 +10,8 @@ Clone and build LLVM with MLIR support.
 Make sure that MLIR supports plugins via dynamic linking.
 ```shell
 git clone https://github.com/llvm/llvm-project.git
-mkdir llvm-project/build-arm64
-cd llvm-project/build-arm64
+mkdir llvm-project/build
+cd llvm-project/build
 
 # configure
 cmake -G Ninja ../llvm \
@@ -53,7 +53,7 @@ mise run format-cpp
 # Check formatting without modifying files.
 mise run format-cpp-check
 
-# Run clang-tidy using build-arm64/compile_commands.json.
+# Run clang-tidy using build/compile_commands.json.
 mise run tidy-cpp
 
 # Run the full C++ lint stack.
@@ -69,7 +69,7 @@ mise run test-backend-sanitizers
 You can also opt into build-integrated checks when configuring CMake manually:
 
 ```shell
-cmake -S . -B build-arm64 \
+cmake -S . -B build \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DUNITS_ENABLE_CLANG_TIDY=ON \
   -DUNITS_ENABLE_ASAN=ON \

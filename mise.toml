@@ -18,13 +18,13 @@ UV_FROZEN = true
 
 [tasks.shell]
 description = "Launch the nix development environment for this project."
-run = "nix develop -c fish"
+run = "nix develop -c $SHELL"
 
 [tasks.run]
 depends = "//:build-backend"
 run = """
 mlir-opt \
-  --load-pass-plugin=build-arm64/UnitVerifyPass.dylib \
+  --load-pass-plugin=build/UnitVerifyPass.dylib \
   --pass-pipeline='builtin.module(verify-units)' \
   test.mlir
 """
@@ -63,7 +63,7 @@ depends = [
 depends = "//:build-backend"
 run = """
 cmake \
-  --build build-arm64 \
+  --build build \
   --target check-units
 """
 
@@ -72,7 +72,7 @@ description = "Run backend tests under AddressSanitizer and UBSan"
 depends = "//:build-backend-sanitizers"
 run = """
 cmake \
-  --build build-arm64-sanitizers \
+  --build build-sanitizers \
   --target check-units
 """
 
@@ -82,7 +82,7 @@ PYTHON_EXE="${PYTHON_EXE:-$(uv python find)}"
 PYBIND11_DIR="${PYBIND11_DIR:-$(uv run -- python -m pybind11 --cmakedir)}"
 LIT_EXE="${LIT_EXE:-$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
-cmake -S . -B build-arm64 \
+cmake -S . -B build \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
@@ -93,8 +93,8 @@ cmake -S . -B build-arm64 \
     -DPython_EXECUTABLE="$PYTHON_EXE" \
     -Dpybind11_DIR="$PYBIND11_DIR" \
     -DLIT_EXECUTABLE="$LIT_EXE"
-cmake --build build-arm64
-cmake -E touch build-arm64/.mise-build.stamp
+cmake --build build
+cmake -E touch build/.mise-build.stamp
 """
 # Only execute the task if any of the following have changed:
 sources = [
@@ -114,7 +114,7 @@ sources = [
     "bindings/**/*.h",
     "bindings/**/*.cpp",
 ]
-outputs = ["build-arm64/.mise-build.stamp"]
+outputs = ["build/.mise-build.stamp"]
 
 [tasks.build-backend-sanitizers]
 description = "Build the C++ backend with AddressSanitizer and UBSan"
@@ -123,7 +123,7 @@ PYTHON_EXE="${PYTHON_EXE:-$(uv python find)}"
 PYBIND11_DIR="${PYBIND11_DIR:-$(uv run -- python -m pybind11 --cmakedir)}"
 LIT_EXE="${LIT_EXE:-$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
-cmake -S . -B build-arm64-sanitizers \
+cmake -S . -B build-sanitizers \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
@@ -137,8 +137,8 @@ cmake -S . -B build-arm64-sanitizers \
     -DCMAKE_BUILD_TYPE=Debug \
     -DUNITS_ENABLE_ASAN=ON \
     -DUNITS_ENABLE_UBSAN=ON
-cmake --build build-arm64-sanitizers
-cmake -E touch build-arm64-sanitizers/.mise-build.stamp
+cmake --build build-sanitizers
+cmake -E touch build-sanitizers/.mise-build.stamp
 """
 sources = [
     "CMakeLists.txt",
@@ -156,7 +156,7 @@ sources = [
     "unittests/**/*.cpp",
     "unittests/**/CMakeLists.txt",
 ]
-outputs = ["build-arm64-sanitizers/.mise-build.stamp"]
+outputs = ["build-sanitizers/.mise-build.stamp"]
 
 [tasks.format-cpp]
 description = "Format C++ and TableGen files with clang-format"
@@ -174,6 +174,6 @@ run = """
 description = "Run clang-tidy over C++ translation units"
 depends = "//:build-backend"
 run = """
-"$CLANG_TIDY_EXE" -quiet -p build-arm64 \
+"$CLANG_TIDY_EXE" -quiet -p build \
   $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'bindings/**/*.cpp' 'unittests/**/*.cpp')
 """

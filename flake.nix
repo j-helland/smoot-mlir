@@ -194,7 +194,7 @@
               runHook preInstall
 
               mkdir -p "$out/bin" "$out/python/units"
-              cp build-arm64/tools/units-opt "$out/bin/units-opt"
+              cp build/tools/units-opt "$out/bin/units-opt"
               cp frontend/python/src/units/_units_backend*.so "$out/python/units/"
 
               runHook postInstall
@@ -249,18 +249,11 @@
           checks = {
             backend = backendPackage;
             frontend = mkFrontendCheck "frontend" "//frontend/python:test";
+            linting = mkFrontendCheck "frontend" "//:lint";
           };
 
           devShells.default = pkgs.mkShell {
-            packages = [
-              # dev env
-              pkgs.git
-              pkgs.fish
-              pkgs.starship
-              pkgs.usage
-
-              pkgs.ccache
-            ]
+            packages = [ ]
             ++ backendNativeBuildInputs
             ++ backendBuildInputs;
 
