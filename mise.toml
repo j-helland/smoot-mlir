@@ -1,4 +1,4 @@
-experimental_monorepo_root = true
+monorepo_root = true
 
 [tools]
 ruff = "0.15.12"
@@ -8,10 +8,7 @@ ty = "0.0.35"
 experimental = true
 
 [monorepo]
-config_roots = [
-    "frontend/python/",
-    "units-rs/",
-]
+config_roots = ["frontend/python/", "units-rs/"]
 
 [env]
 UV_FROZEN = true
@@ -30,34 +27,22 @@ mlir-opt \
 """
 
 [tasks.check-all]
-depends = [
-    "//:lint",
-    "//:test",
-    "//:test-backend-sanitizers",
-]
+depends = ["//:lint", "//:test", "//:test-backend-sanitizers"]
 
 [tasks.lint]
 depends = [
-    "//:format-cpp-check",
-    "//:tidy-cpp",
-    "//frontend/python:lint",
-    "//units-rs:lint",
+  "//:format-cpp-check",
+  "//:tidy-cpp",
+  "//frontend/python:lint",
+  "//units-rs:lint",
 ]
 
 [tasks.fix]
 description = "Apply formatting and automatic linting fixes where possible."
-depends = [
-    "//:format-cpp",
-    "//frontend/python:fix",
-    "//units-rs:fix",
-]
+depends = ["//:format-cpp", "//frontend/python:fix", "//units-rs:fix"]
 
 [tasks.test]
-depends = [
-    "//:test-backend",
-    "//frontend/python:test",
-    "//units-rs:test",
-]
+depends = ["//:test-backend", "//frontend/python:test", "//units-rs:test"]
 
 [tasks.test-backend]
 depends = "//:build-backend"
@@ -98,21 +83,21 @@ cmake -E touch build/.mise-build.stamp
 """
 # Only execute the task if any of the following have changed:
 sources = [
-    "CMakeLists.txt",
-    "tools/**/*.h",
-    "tools/**/*.td",
-    "tools/**/*.cpp",
-    "tools/**/CMakeLists.txt",
-    "lib/**/*.h",
-    "lib/**/*.td",
-    "lib/**/*.cpp",
-    "lib/**/CMakeLists.txt",
-    "units-rs/CMakeLists.txt",
-    "units-rs/**/*.h",
-    "units-rs/**/*.rs",
-    "bindings/**/CMakeLists.txt",
-    "bindings/**/*.h",
-    "bindings/**/*.cpp",
+  "CMakeLists.txt",
+  "tools/**/*.h",
+  "tools/**/*.td",
+  "tools/**/*.cpp",
+  "tools/**/CMakeLists.txt",
+  "lib/**/*.h",
+  "lib/**/*.td",
+  "lib/**/*.cpp",
+  "lib/**/CMakeLists.txt",
+  "units-rs/CMakeLists.txt",
+  "units-rs/**/*.h",
+  "units-rs/**/*.rs",
+  "bindings/**/CMakeLists.txt",
+  "bindings/**/*.h",
+  "bindings/**/*.cpp",
 ]
 outputs = ["build/.mise-build.stamp"]
 
@@ -141,20 +126,20 @@ cmake --build build-sanitizers
 cmake -E touch build-sanitizers/.mise-build.stamp
 """
 sources = [
-    "CMakeLists.txt",
-    "tools/**/*.h",
-    "tools/**/*.td",
-    "tools/**/*.cpp",
-    "tools/**/CMakeLists.txt",
-    "lib/**/*.h",
-    "lib/**/*.td",
-    "lib/**/*.cpp",
-    "lib/**/CMakeLists.txt",
-    "units-rs/**/*.h",
-    "units-rs/**/*.rs",
-    "mlir-tests/**/*",
-    "unittests/**/*.cpp",
-    "unittests/**/CMakeLists.txt",
+  "CMakeLists.txt",
+  "tools/**/*.h",
+  "tools/**/*.td",
+  "tools/**/*.cpp",
+  "tools/**/CMakeLists.txt",
+  "lib/**/*.h",
+  "lib/**/*.td",
+  "lib/**/*.cpp",
+  "lib/**/CMakeLists.txt",
+  "units-rs/**/*.h",
+  "units-rs/**/*.rs",
+  "mlir-tests/**/*",
+  "unittests/**/*.cpp",
+  "unittests/**/CMakeLists.txt",
 ]
 outputs = ["build-sanitizers/.mise-build.stamp"]
 
