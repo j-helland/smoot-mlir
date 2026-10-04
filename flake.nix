@@ -120,6 +120,7 @@
           backendNativeBuildInputs = [
             pkgs.cmake
             pkgs.ninja
+            pkgs.git
             pkgs.mise
             pkgs.uv
             devtoolsPythonEnv
