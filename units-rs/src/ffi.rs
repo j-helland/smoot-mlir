@@ -2,14 +2,18 @@ use std::{
     ffi::{CStr, CString},
     os::raw::c_char,
     ptr,
+    sync::LazyLock,
 };
 
-use crate::algebra;
-use crate::unit;
+use smoot_rs::{registry::Registry, unit::Unit};
+
+static REGISTRY: LazyLock<Result<Registry, String>> = LazyLock::new(|| {
+    Registry::new_from_str(include_str!("../data/unit-definitions.txt")).map_err(|e| e.to_string())
+});
 
 #[repr(C)]
 pub struct Units_Unit {
-    unit: unit::Unit,
+    unit: Unit,
 }
 
 #[repr(C)]
@@ -82,7 +86,9 @@ where
 pub extern "C" fn units_parse_unit(expression: *const c_char) -> Units_UnitResult {
     ffi_result(|| {
         let expression = read_c_str(expression, "expression")?;
-        let unit = unit::Unit::parse(expression);
+        let registry = REGISTRY.as_ref().map_err(|e| e.clone())?;
+        let (factor, unit) = Unit::parse(registry, expression).map_err(|e| e.to_string())?;
+        _ = factor; // TODO(jwh): handle factors
         Ok(Box::into_raw(Box::new(Units_Unit { unit })))
     })
 }
@@ -91,11 +97,11 @@ pub extern "C" fn units_parse_unit(expression: *const c_char) -> Units_UnitResul
 pub extern "C" fn units_format_unit(unit: *const Units_Unit) -> Units_StringResult {
     ffi_result(|| {
         let unit = read_unit(unit, "unit")?;
-        Ok(into_c_string(unit.format()))
+        Ok(into_c_string(unit.to_string()))
     })
 }
 
-fn read_unit<'a>(ptr: *const Units_Unit, name: &str) -> Result<&'a unit::Unit, String> {
+fn read_unit<'a>(ptr: *const Units_Unit, name: &str) -> Result<&'a Unit, String> {
     if ptr.is_null() {
         return Err(format!("{name} pointer was null"));
     }
@@ -108,10 +114,10 @@ pub extern "C" fn units_mul(lhs: *const Units_Unit, rhs: *const Units_Unit) -> U
         let lhs = read_unit(lhs, "lhs")?;
         let rhs = read_unit(rhs, "rhs")?;
 
-        algebra::mul_units(lhs, rhs)
-            .map(|unit| Units_Unit { unit })
-            .map(Box::new)
-            .map(Box::into_raw)
+        let mut unit = lhs.clone();
+        unit *= rhs;
+
+        Ok(Box::into_raw(Box::new(Units_Unit { unit })))
     })
 }
 
@@ -121,8 +127,13 @@ pub extern "C" fn units_add(lhs: *const Units_Unit, rhs: *const Units_Unit) -> U
         let lhs = read_unit(lhs, "lhs")?;
         let rhs = read_unit(rhs, "rhs")?;
 
-        algebra::add_units(lhs, rhs)
-            .map(|unit| Units_Unit { unit })
+        let unit = if lhs.is_compatible_with(rhs) {
+            Ok(lhs.clone())
+        } else {
+            Err(format!("cannot add units `{lhs:?}` and `{rhs:?}`"))
+        };
+
+        unit.map(|unit| Units_Unit { unit })
             .map(Box::new)
             .map(Box::into_raw)
     })

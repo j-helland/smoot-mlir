@@ -62,3 +62,9 @@ allow_attributes_without_reason = "warn"
 
 [lib]
 crate-type = ["staticlib"]
+
+[dependencies]
+
+[dependencies.smoot-rs]
+git = "https://github.com/j-helland/smoot.git"
+rev = "69048668bc64141bac5d9635abe3fdeaf0be0986"

@@ -28,6 +28,25 @@ TEST(UnitsRsAbiTest, ParsesMultipliesFormatsAndFreesUnits) {
   units_free_unit(velocity.value);
 }
 
+TEST(UnitsRsAbiTest, ValidAdd) {
+  Units_UnitResult meter = units_parse_unit("meter");
+  ASSERT_TRUE(meter.ok) << (meter.error ? meter.error : "");
+  ASSERT_NE(meter.value, nullptr);
+
+  Units_UnitResult sum = units_add(meter.value, meter.value);
+  ASSERT_TRUE(sum.ok);
+  ASSERT_EQ(sum.error, nullptr);
+
+  Units_StringResult formatted = units_format_unit(sum.value);
+  ASSERT_TRUE(formatted.ok) << (formatted.error ? formatted.error : "");
+  ASSERT_NE(formatted.value, nullptr);
+  EXPECT_STREQ(formatted.value, "meter");
+
+  units_free_string(formatted.value);
+  units_free_unit(sum.value);
+  units_free_unit(meter.value);
+}
+
 TEST(UnitsRsAbiTest, ReportsInvalidAdd) {
   Units_UnitResult meter = units_parse_unit("meter");
   ASSERT_TRUE(meter.ok) << (meter.error ? meter.error : "");
