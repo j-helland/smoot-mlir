@@ -1,3 +1,5 @@
+[![NixCI](https://nix-ci.com/badge/gh:j-helland:smoot-mlir)](https://nix-ci.com/gh:j-helland:smoot-mlir)
+
 # Setup
 
 > [!WARNING]

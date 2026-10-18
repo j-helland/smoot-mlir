@@ -1,8 +1,0 @@
-builds:
-  branch: main
-  exclude: []
-  include:
-    - checks.x86_64-linux.backend
-    - checks.x86_64-linux.frontend
-    # NOTE(jwh): only backend is currently a reusable build artifact
-    - packages.x86_64-linux.backend
