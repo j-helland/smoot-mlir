@@ -4,7 +4,6 @@ import os
 
 import lit.formats
 import lit.util
-
 from lit.llvm import llvm_config
 from lit.llvm.subst import FindTool, ToolSubst
 

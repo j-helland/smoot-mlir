@@ -17,7 +17,12 @@ add_mlir_library(UnitsToStandard
 
   LINK_LIBS PUBLIC
   MLIRUnits
+)
+
+mlir_target_link_libraries(UnitsToStandard PUBLIC
   MLIRArithDialect
+  MLIRFuncDialect
+  MLIRFuncTransforms
   MLIRSCFDialect
   MLIRTransforms
 )

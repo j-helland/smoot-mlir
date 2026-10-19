@@ -1,7 +1,6 @@
 from typing import Annotated
 
 import pytest
-
 from units import Quantity, Unit, UnitsCompileError, verify
 
 

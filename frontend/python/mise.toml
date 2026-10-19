@@ -3,9 +3,7 @@ experimental = true
 
 [tasks.test]
 depends = ["//:build-backend"]
-run = """
-uv run -- pytest
-"""
+run = "uv run -- pytest"
 
 [tasks.lint]
 depends = [

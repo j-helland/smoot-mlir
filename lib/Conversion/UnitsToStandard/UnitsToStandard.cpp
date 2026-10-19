@@ -1,21 +1,23 @@
-#include "lib/Conversion/UnitsToStandard/UnitsToStandard.h"
+#include "UnitsToStandard.h"
 #include "Units/UnitsOps.h"
 #include "Units/UnitsTypes.h"
 
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/SCF/IR/SCF.h"
-#include "mlir/IR/BuiltinAttributes.h"
-#include "mlir/IR/BuiltinDialect.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/DialectRegistry.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/Pass/Pass.h"
-#include "mlir/Pass/PassRegistry.h"
-#include "mlir/Support/LLVM.h"
-#include "mlir/Support/TypeID.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/Func/Transforms/FuncConversions.h>
+#include <mlir/Dialect/SCF/IR/SCF.h>
+#include <mlir/IR/BuiltinAttributes.h>
+#include <mlir/IR/BuiltinDialect.h>
+#include <mlir/IR/BuiltinOps.h>
+#include <mlir/IR/DialectRegistry.h>
+#include <mlir/IR/MLIRContext.h>
+#include <mlir/IR/PatternMatch.h>
+#include <mlir/Pass/Pass.h>
+#include <mlir/Pass/PassRegistry.h>
+#include <mlir/Support/LLVM.h>
+#include <mlir/Support/TypeID.h>
+#include <mlir/Transforms/DialectConversion.h>
+#include <mlir/Transforms/GreedyPatternRewriteDriver.h>
 
 namespace mlir::units {
 
@@ -23,14 +25,17 @@ namespace mlir::units {
 #include "lib/Conversion/UnitsToStandard/UnitsToStandard.h.inc"
 
 namespace {
+
 struct UnitsToStandardPass
     : public impl::UnitsToStandardBase<UnitsToStandardPass> {
   using Base::Base;
   void runOnOperation() override;
 };
+
 } // namespace
 
 namespace {
+
 struct ConstLowering : mlir::OpConversionPattern<ConstOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -76,6 +81,7 @@ struct AddLowering : mlir::OpConversionPattern<AddOp> {
     return mlir::success();
   }
 };
+
 } // namespace
 
 void UnitsToStandardPass::runOnOperation() {
@@ -91,10 +97,23 @@ void UnitsToStandardPass::runOnOperation() {
   mlir::RewritePatternSet patterns(&context);
   patterns.add<ConstLowering, MulLowering, AddLowering>(converter, &context);
 
+  mlir::populateFunctionOpInterfaceTypeConversionPattern<mlir::func::FuncOp>(
+      patterns, converter);
+  mlir::populateReturnOpTypeConversionPattern(patterns, converter);
+
   mlir::ConversionTarget target(context);
   target.addLegalDialect<mlir::arith::ArithDialect>();
   target.addLegalDialect<mlir::BuiltinDialect>();
   target.addIllegalDialect<UnitsDialect>();
+
+  target.addDynamicallyLegalOp<mlir::func::FuncOp>([&](mlir::func::FuncOp op) {
+    return converter.isSignatureLegal(op.getFunctionType()) &&
+           converter.isLegal(&op.getBody());
+  });
+  target.addDynamicallyLegalOp<mlir::func::ReturnOp>(
+      [&](mlir::func::ReturnOp op) {
+        return converter.isLegal(op.getOperation());
+      });
 
   if (mlir::failed(mlir::applyFullConversion(getOperation(), target,
                                              std::move(patterns)))) {

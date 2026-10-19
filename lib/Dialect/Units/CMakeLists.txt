@@ -35,7 +35,10 @@ add_mlir_dialect_library(MLIRUnits
   MLIRUnitsAttrsIncGen
 
   LINK_LIBS PUBLIC
+  units_rs
+)
+
+mlir_target_link_libraries(MLIRUnits PUBLIC
   MLIRIR
   MLIRSupport
-  units_rs
 )

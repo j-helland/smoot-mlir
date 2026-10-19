@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated
 
@@ -10,8 +11,8 @@ from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich import print
 
-from units import UnitsCompileError, _units_backend
-from units.diagnostics import Diagnostic
+from units import _units_backend
+from units.diagnostics import Diagnostic, UnitsCompileError
 from units.mlir_emit import GeneratedModule
 
 
@@ -24,19 +25,22 @@ class NativeBackend:
         return cls()
 
     def verify_mlir(self, input: GeneratedModule | str) -> None:
-        if isinstance(input, GeneratedModule):
-            text = input.text
-        else:
-            text = input
-
+        text = input.text if isinstance(input, GeneratedModule) else input
         try:
             _units_backend.verify_mlir(text)
         except _units_backend.BackendError as e:
-            raise UnitsCompileError(
-                Diagnostic.backend(
-                    message=str(e),
-                )
-            ) from e
+            raise UnitsCompileError(Diagnostic.backend(message=str(e))) from e
+
+    def compile_mlir(
+        self,
+        input: GeneratedModule | str,
+        entrypoint: str,
+    ) -> Callable[[float], float]:
+        text = input.text if isinstance(input, GeneratedModule) else input
+        try:
+            return _units_backend.compile_mlir(text, entrypoint)
+        except _units_backend.BackendError as e:
+            raise UnitsCompileError(Diagnostic.backend(message=str(e))) from e
 
 
 def _parse_command_exists(value: str | Path) -> str:

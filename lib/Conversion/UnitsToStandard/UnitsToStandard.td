@@ -11,6 +11,7 @@ def UnitsToStandard : Pass<"units-to-standard"> {
   }];
   let dependentDialects = ["mlir::units::UnitsDialect",
                            "mlir::arith::ArithDialect", "mlir::scf::SCFDialect",
+                           "mlir::func::FuncDialect",
   ];
 }
 

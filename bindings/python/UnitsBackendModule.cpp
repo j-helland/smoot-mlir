@@ -1,11 +1,9 @@
-#include "Units/UnitsDialect.h"
-
-#include <stdexcept>
 #include <string>
 
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SMLoc.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -21,14 +19,14 @@
 #include <pybind11/detail/common.h>
 #include <pybind11/pybind11.h>
 
+#include "Units/UnitsDialect.h"
+#include "BackendError.h"
+#include "CompiledFunction.h"
+#include "Compiler.h"
+
 namespace py = pybind11;
 
-namespace {
-
-class BackendError : public std::runtime_error {
-public:
-  using std::runtime_error::runtime_error;
-};
+namespace units::backend {
 
 std::string getDiagnosticText(const std::string &diagnostics,
                               const char *fallback) {
@@ -73,13 +71,23 @@ void verifyMlir(std::string const &text) {
   }
 }
 
-} // namespace
+} // namespace units::backend
 
 PYBIND11_MODULE(_units_backend, module) {
-  py::register_exception<BackendError>(module, "BackendError");
+  py::register_exception<units::backend::BackendError>(module, "BackendError");
+  py::class_<units::backend::CompiledFunction>(module, "CompiledFunction")
+      .def("__call__", &units::backend::CompiledFunction::invoke);
+
+  if (llvm::InitializeNativeTarget() ||
+      llvm::InitializeNativeTargetAsmPrinter()) {
+    throw units::backend::BackendError(
+        "failed to initialize native code generation");
+  }
 
   module.doc() = "Native MLIR backend bindings for the units frontend.";
 
-  module.def("verify_mlir", &verifyMlir, py::arg("text"),
+  module.def("verify_mlir", &units::backend::verifyMlir, py::arg("text"),
              "Parse and verify Units MLIR in-process.");
+  module.def("compile_mlir", &units::backend::compileMlir, py::arg("text"),
+             py::arg("entrypoint"), "Compile a placeholder native function.");
 }
