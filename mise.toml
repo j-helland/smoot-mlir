@@ -146,19 +146,32 @@ outputs = ["build-sanitizers/.mise-build.stamp"]
 [tasks.format-cpp]
 description = "Format C++ and TableGen files with clang-format"
 run = """
-"$CLANG_FORMAT_EXE" -i $(git ls-files '*.h' '*.cpp' '*.td')
+"$CLANG_FORMAT_EXE" -i $(
+    git ls-files \
+        '*.h' '*.cpp' '*.td' \
+        ':(exclude)units-rs/include/units_rs.h'
+)
 """
 
 [tasks.format-cpp-check]
 description = "Check C++ and TableGen formatting"
 run = """
-"$CLANG_FORMAT_EXE" --dry-run --Werror $(git ls-files '*.h' '*.cpp' '*.td')
+"$CLANG_FORMAT_EXE" --dry-run --Werror $(
+    git ls-files \
+        '*.h' '*.cpp' '*.td' \
+        ':(exclude)units-rs/include/units_rs.h'
+)
 """
 
 [tasks.tidy-cpp]
 description = "Run clang-tidy over C++ translation units"
 depends = "//:build-backend"
 run = """
-"$CLANG_TIDY_EXE" -quiet -p build \
-  $(git ls-files 'lib/**/*.cpp' 'tools/**/*.cpp' 'bindings/**/*.cpp' 'unittests/**/*.cpp')
+"$CLANG_TIDY_EXE" -quiet -p build $(
+    git ls-files \
+        'lib/**/*.cpp' \
+        'tools/**/*.cpp' \
+        'bindings/**/*.cpp' \
+        'unittests/**/*.cpp'
+)
 """

@@ -11,7 +11,7 @@ static REGISTRY: LazyLock<Result<Registry, String>> = LazyLock::new(|| {
     Registry::new_from_str(include_str!("../data/unit-definitions.txt")).map_err(|e| e.to_string())
 });
 
-#[repr(C)]
+#[allow(non_camel_case_types)]
 pub struct Units_Unit {
     unit: Unit,
 }

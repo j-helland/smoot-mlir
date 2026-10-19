@@ -123,6 +123,7 @@
             pkgs.git
             pkgs.mise
             pkgs.uv
+            pkgs.rust-cbindgen
             devtoolsPythonEnv
             rustToolChain
             llvm.llvm
