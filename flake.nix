@@ -151,8 +151,19 @@
             version = "0.0.0";
             src = self;
 
-            nativeBuildInputs = backendNativeBuildInputs;
+            nativeBuildInputs = backendNativeBuildInputs ++ [ pkgs.rustPlatform.cargoSetupHook ];
             buildInputs = backendBuildInputs;
+
+            # TODO(jwh): Remove once smoot is published as a regular crate.
+            # Cargo runs inside the Nix build sandbox, so fetch dependencies first.
+            cargoRoot = "units-rs";
+            cargoDeps = pkgs.rustPlatform.importCargoLock {
+              lockFile = ./units-rs/Cargo.lock;
+              outputHashes = {
+                "smoot-rs-0.1.0" = "sha256-qwsWZa2OFtqG1dEUQwooESXyqzF7F9zFGBA6dVMC2nc=";
+              };
+            };
+            CARGO_NET_OFFLINE = "true";
 
             doCheck = true;
             dontConfigure = true;
@@ -212,6 +223,7 @@
 
               nativeBuildInputs = [
                 pkgs.mise
+                pkgs.uv
                 frontendPythonEnv
                 backendPackage
               ];
@@ -228,7 +240,9 @@
                 export MISE_STATE_DIR="$TMPDIR/mise-state"
                 export UV_CACHE_DIR="$TMPDIR/uv-cache"
                 ${exportUvEnv}
-                export UNITS_NIX_PYTHON=1
+                export UV_PROJECT_ENVIRONMENT="${frontendPythonEnv}"
+                export UV_NO_SYNC=1
+                export PYTHONPATH="$PWD/frontend/python/src''${PYTHONPATH:+:$PYTHONPATH}"
 
                 mkdir -p "$HOME" frontend/python/src/units
                 cp ${backendPackage}/python/units/_units_backend*.so frontend/python/src/units/
