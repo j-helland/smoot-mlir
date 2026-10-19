@@ -1,9 +1,9 @@
-from units.ast_parser import transform_ast
 from types import FunctionType
 
 import pytest
 
 from units import Quantity, Unit
+from units.ast_parser import transform_ast
 from units.mlir_emit import emit_mlir
 
 

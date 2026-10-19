@@ -81,6 +81,7 @@ class UnitsOpt(BaseSettings):
         cmd = (self.units_opt,)
         result = subprocess.run(
             cmd,
+            check=False,
             input=text,
             text=True,
             capture_output=True,

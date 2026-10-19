@@ -24,10 +24,8 @@ class Quantity:
 
 
 __all__ = [
-    # verify
     "Quantity",
     "Unit",
-    "verify",
-    # errors
     "UnitsCompileError",
+    "verify",
 ]

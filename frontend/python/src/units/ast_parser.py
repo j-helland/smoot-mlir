@@ -3,10 +3,11 @@ from __future__ import annotations
 import ast
 import inspect
 import textwrap
+from collections.abc import Callable
 from dataclasses import dataclass
 from numbers import Number
 from types import FunctionType
-from typing import Callable, Final, TypeAlias
+from typing import Final, TypeAlias
 
 from units import Unit, UnitsCompileError
 from units.annotations import QuantityTypeInfo

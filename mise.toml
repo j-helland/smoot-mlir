@@ -1,7 +1,7 @@
 monorepo_root = true
 
 [tools]
-ruff = "0.15.12"
+ruff = "0.17.1"
 ty = "0.0.35"
 
 [settings]

@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from units import Quantity, Unit
 from units.annotations import QuantityTypeInfo
 from units.signatures import FunctionSignature

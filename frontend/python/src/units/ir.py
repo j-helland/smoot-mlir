@@ -1,5 +1,4 @@
 from __future__ import annotations
-from units.span import SourceSpan
 
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -10,6 +9,7 @@ from typing_extensions import dataclass_transform
 
 from units.annotations import QuantityTypeInfo
 from units.signatures import FunctionSignature
+from units.span import SourceSpan
 
 T = TypeVar("T")
 

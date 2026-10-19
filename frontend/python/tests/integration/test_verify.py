@@ -1,5 +1,6 @@
 import pytest
-from units import Quantity, Unit, verify, UnitsCompileError
+
+from units import Quantity, Unit, UnitsCompileError, verify
 
 
 def test_verify_happy_path():

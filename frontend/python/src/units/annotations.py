@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from units.diagnostics import UnitsCompileError
-
 import functools
 from dataclasses import dataclass
 from typing import (
@@ -11,6 +9,8 @@ from typing import (
     get_args,
     get_origin,
 )
+
+from units.diagnostics import UnitsCompileError
 
 Dimensionality: TypeAlias = tuple[int, ...]
 
