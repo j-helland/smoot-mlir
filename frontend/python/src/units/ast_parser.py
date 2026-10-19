@@ -9,9 +9,8 @@ from numbers import Number
 from types import FunctionType
 from typing import Final, TypeAlias
 
-from units import Unit, UnitsCompileError
 from units.annotations import QuantityTypeInfo, parse_quantity_annotation
-from units.diagnostics import Diagnostic
+from units.diagnostics import Diagnostic, UnitsCompileError
 from units.ir import (
     Assign,
     Binary,
@@ -24,6 +23,7 @@ from units.ir import (
     Return,
     Stmt,
 )
+from units.quantity import Unit
 from units.signatures import FunctionSignature
 from units.span import SourceSpan
 

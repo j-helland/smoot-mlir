@@ -4,9 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TypeAlias
 
-from units import UnitsCompileError
 from units.annotations import QuantityTypeInfo, Unit
-from units.diagnostics import Diagnostic
+from units.diagnostics import Diagnostic, UnitsCompileError
 from units.ir import Binary, Expr, Function, Name, Node, Operator, Return, Stmt
 from units.span import SourceSpan
 

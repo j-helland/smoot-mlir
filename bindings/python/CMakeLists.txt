@@ -3,11 +3,15 @@ find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(_units_backend
   UnitsBackendModule.cpp
+  CompiledFunction.cpp
+  Compiler.cpp
 )
 
 target_link_libraries(_units_backend PRIVATE
   MLIRUnits
+  UnitsToStandard
   MLIR
+  MLIRExecutionEngine
 )
 
 set_target_properties(_units_backend PROPERTIES
