@@ -10,7 +10,7 @@ from types import FunctionType
 from typing import Final, TypeAlias
 
 from units import Unit, UnitsCompileError
-from units.annotations import QuantityTypeInfo
+from units.annotations import QuantityTypeInfo, parse_quantity_annotation
 from units.diagnostics import Diagnostic
 from units.ir import (
     Assign,
@@ -237,13 +237,10 @@ def _transform_annotation(
     ctx: _AstTransformCtx,
 ) -> QuantityTypeInfo:
     match annotation:
-        case ast.Subscript(
-            value=ast.Name(id="Quantity"),
-            slice=ast.Tuple(elts=[element_node, unit_node]),
-        ):
-            return QuantityTypeInfo(
-                element=_parse_element_annotation_ast(element_node, ctx),
-                unit=_parse_unit_annotation_ast(unit_node, ctx),
+        case ast.Name(id=name) if name in ctx.globals:
+            return parse_quantity_annotation(
+                ctx.globals[name],
+                span=SourceSpan.from_ast(annotation, ctx.span),
             )
 
         case ast.Subscript(
@@ -265,10 +262,12 @@ def _parse_element_annotation_ast(
     node: ast.expr,
     ctx: _AstTransformCtx,
 ) -> str:
-    # TODO(jwh): flesh out the supported value types
     match node:
-        case ast.Name(id="float"):
+        case ast.Name("float"):
             return "f64"
+
+        case ast.Subscript(value=ast.Name(id="Quantity"), slice=backing):
+            return _parse_element_annotation_ast(backing, ctx)
 
         case _:
             msg = f"unsupported quantity element type: {ast.dump(node)}"
@@ -281,6 +280,10 @@ def _parse_unit_annotation_ast(
     ctx: _AstTransformCtx,
 ) -> Unit:
     match node:
+        case ast.Name(id=name) if isinstance(ctx.globals.get(name), (Unit, str)):
+            unit = ctx.globals[name]
+            return unit if isinstance(unit, Unit) else Unit(str(unit))
+
         case ast.Call(
             func=ast.Name(id="Unit"),
             args=[ast.Constant(value=str(expression))],

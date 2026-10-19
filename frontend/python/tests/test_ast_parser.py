@@ -1,3 +1,5 @@
+from typing import Annotated, TypeAlias
+
 import pytest
 from syrupy.assertion import SnapshotAssertion
 
@@ -5,12 +7,14 @@ from units import Quantity, Unit, UnitsCompileError
 from units.ast_parser import transform_ast
 from units.ir import Assign, Binary, Constant, Function, Name, Operator, Return
 
+Meters: TypeAlias = Annotated[Quantity[float], Unit("meter")]
+
 
 def test_transform_return_mul():
     def distance(
-        velocity: Quantity[float, Unit("meter / second")],
-        dt: Quantity[float, Unit("second")],
-    ) -> Quantity[float, Unit("meter")]:
+        velocity: Annotated[Quantity, Unit("meter / second")],
+        dt: Annotated[Quantity, Unit("second")],
+    ) -> Annotated[Quantity, Unit("meter")]:
         return velocity * dt
 
     fn_ast = transform_ast(distance)
@@ -30,7 +34,7 @@ def test_transform_return_mul():
 
 
 def test_transform_assignment():
-    def f(x: Quantity[float, Unit("meter")]) -> Quantity[float, Unit("meter")]:
+    def f(x: Annotated[Quantity, Unit("meter")]) -> Annotated[Quantity, Unit("meter")]:
         # regular assigment
         y = x
         return y
@@ -52,9 +56,9 @@ def test_transform_assignment():
 
 
 def test_transform_annotated_assignment():
-    def f() -> Quantity[float, Unit("meter")]:
+    def f() -> Annotated[float, Unit("meter")]:
         # annotated assigment
-        x: Quantity[float, Unit("meter")] = 1.0
+        x: Annotated[float, Unit("meter")] = 1.0
         return x
 
     fn_ast = transform_ast(f)
@@ -77,7 +81,7 @@ def test_transform_annotated_assignment():
 
 
 def test_transform_invalid(diagnostic_snapshot: SnapshotAssertion):
-    def f() -> Quantity[float, Unit("meter")]:
+    def f() -> Annotated[Quantity, Unit("meter")]:
         return distance  # noqa: F821  # ty:ignore[unresolved-reference]
 
     _check_rendered_compile_error(f, diagnostic_snapshot)
@@ -91,3 +95,20 @@ def _check_rendered_compile_error(
         transform_ast(code)
 
     diagnostic_snapshot.assert_match(str(exc_info.value))
+
+
+def test_transform_quantity_aliases():
+    def f(source: Meters) -> Meters:
+        x: Annotated[Quantity[float], Unit("meter")] = source
+        y: Meters = x
+        return y
+
+    fn_ast = transform_ast(f)
+    assert isinstance(fn_ast, Function)
+    first, second, _ = fn_ast.body
+    assert isinstance(first, Assign)
+    assert isinstance(second, Assign)
+    assert first.declared_type == second.declared_type
+    assert first.declared_type is not None
+    assert first.declared_type.element == "f64"
+    assert first.declared_type.unit == Unit("meter")

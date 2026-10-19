@@ -1,4 +1,5 @@
 from types import FunctionType
+from typing import Annotated
 
 import pytest
 
@@ -8,16 +9,16 @@ from units.mlir_emit import emit_mlir
 
 
 def func_mul(
-    velocity: Quantity[float, Unit("meter / second")],
-    dt: Quantity[float, Unit("second")],
-) -> Quantity[float, Unit("meter")]:
+    velocity: Annotated[Quantity, Unit("meter / second")],
+    dt: Annotated[Quantity, Unit("second")],
+) -> Annotated[Quantity, Unit("meter")]:
     return velocity * dt
 
 
 def func_add(
-    x: Quantity[float, Unit("meter")],
-    y: Quantity[float, Unit("meter")],
-) -> Quantity[float, Unit("meter")]:
+    x: Annotated[Quantity, Unit("meter")],
+    y: Annotated[Quantity, Unit("meter")],
+) -> Annotated[Quantity, Unit("meter")]:
     return x + y
 
 

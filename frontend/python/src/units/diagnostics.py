@@ -28,7 +28,7 @@ class Diagnostic:
     ) -> Diagnostic:
         return cls(
             message=message,
-            phase=DiagnosticPhase.emit,
+            phase=DiagnosticPhase.frontend,
             span=span,
         )
 
@@ -53,7 +53,7 @@ class Diagnostic:
     ) -> Diagnostic:
         return cls(
             message=message,
-            phase=DiagnosticPhase.emit,
+            phase=DiagnosticPhase.backend,
             span=span,
             backend_stderr=backend_stderr,
         )

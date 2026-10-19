@@ -39,9 +39,8 @@ fish_add_path $(pwd)/bin
 ```
 
 # Usage
-```shell
-mise run 
-```
+
+TODO(jwh)
 
 # C++ Tooling
 

@@ -4,11 +4,7 @@ experimental = true
 [tasks.test]
 depends = ["//:build-backend"]
 run = """
-if [ "${UNITS_NIX_PYTHON:-}" = "1" ]; then
-    PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}" python -m pytest
-else
-    uv run -- pytest
-fi
+uv run -- pytest
 """
 
 [tasks.lint]
