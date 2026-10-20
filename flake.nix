@@ -53,7 +53,8 @@
             ];
           };
 
-          llvm = pkgs.llvmPackages_22;
+          llvmBase = pkgs.llvmPackages_22;
+          llvm = llvmBase // { inherit mlir; };
 
           rustToolChain = pkgs.rust-bin.stable."1.95.0".default.override {
             extensions = [
@@ -91,6 +92,50 @@
           frontendPythonEnv = pythonSet.mkVirtualEnv "units-frontend-test-env" {
             units = [ "dev" ];
           };
+
+          mlirPythonBuildEnv = python.withPackages (ps: [
+            ps.nanobind
+            ps.numpy
+            ps.ml-dtypes
+            ps.pyyaml
+            ps.typing-extensions
+          ]);
+
+          mlir = llvmBase.mlir.overrideAttrs (old: {
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [
+              mlirPythonBuildEnv
+            ];
+
+            cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+              "-DMLIR_ENABLE_BINDINGS_PYTHON=ON"
+              "-DMLIR_LINK_MLIR_DYLIB=OFF"
+              "-DPython_EXECUTABLE=${mlirPythonBuildEnv}/bin/python3"
+              "-DPython3_EXECUTABLE=${mlirPythonBuildEnv}/bin/python3"
+              "-DMLIR_BINDINGS_PYTHON_INSTALL_PREFIX=python_packages/mlir_core/mlir"
+            ];
+
+            postInstall = (old.postInstall or "") + lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+              for library in \
+                libMLIRPythonCAPI.dylib \
+                libMLIRPythonSupport-mlir.dylib \
+                libnanobind-mlir.dylib
+              do
+                ln -s \
+                  "../python_packages/mlir_core/mlir/_mlir_libs/$library" \
+                  "$out/lib/$library"
+              done
+            '';
+          });
+
+          mlirPythonRuntimeEnv = python.withPackages (ps: [
+            ps.numpy
+            ps.ml-dtypes
+            ps.typing-extensions
+          ]);
+
+          mlirPythonPath =
+            "${mlir}/python_packages/mlir_core:"
+            + "${mlirPythonRuntimeEnv}/${python.sitePackages}";
 
           uvEnv = {
             UV_PYTHON = "${python}/bin/python3";
@@ -242,7 +287,7 @@
                 ${exportUvEnv}
                 export UV_PROJECT_ENVIRONMENT="${frontendPythonEnv}"
                 export UV_NO_SYNC=1
-                export PYTHONPATH="$PWD/frontend/python/src''${PYTHONPATH:+:$PYTHONPATH}"
+                export PYTHONPATH="$PWD/frontend/python/src:${mlirPythonPath}"
 
                 mkdir -p "$HOME" frontend/python/src/units
                 cp ${backendPackage}/python/units/_units_backend*.so frontend/python/src/units/
@@ -261,6 +306,7 @@
         in
         {
           packages.backend = backendPackage;
+          packages.mlir = mlir;
 
           checks = {
             backend = backendPackage;
@@ -278,9 +324,8 @@
 
               export PATH="${llvm.clang-tools}/bin:${llvm.mlir}/bin:${llvm.llvm}/bin:$PATH"
 
-              # Make sure that Python from any nix managed tools can't interfere with
-              # the rest of the project, which uses uv to manage Python.
-              unset PYTHONPATH
+              # Expose MLIR and its runtime dependencies to the uv environment.
+              export PYTHONPATH="${mlirPythonPath}"
             '';
           };
         };
