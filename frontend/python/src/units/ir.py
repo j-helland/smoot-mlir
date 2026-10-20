@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from numbers import Number
-from typing import TypeVar
-
-from typing_extensions import dataclass_transform
+from typing import TypeVar, dataclass_transform
 
 from units.annotations import QuantityTypeInfo
 from units.signatures import FunctionSignature
@@ -15,7 +13,7 @@ T = TypeVar("T")
 
 
 @dataclass_transform(frozen_default=True, kw_only_default=True)
-def ir_model(t: type[T]) -> type[T]:
+def ir_model[T](t: type[T]) -> type[T]:
     return dataclass(
         frozen=True,
         slots=True,

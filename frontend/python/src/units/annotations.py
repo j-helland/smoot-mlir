@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Annotated, Any, get_args, get_origin
-
-import typing_extensions
+from typing import Annotated, Any, TypeAliasType, get_args, get_origin
 
 from units.diagnostics import Diagnostic, UnitsCompileError
 from units.quantity import Quantity, Unit
@@ -20,7 +18,7 @@ def parse_quantity_annotation(
     annotation: Any,
     span: SourceSpan | None = None,
 ) -> QuantityTypeInfo:
-    while isinstance(annotation, typing_extensions.TypeAliasType):
+    while isinstance(annotation, TypeAliasType):
         annotation = annotation.__value__
 
     if get_origin(annotation) is not Annotated:
@@ -33,7 +31,7 @@ def parse_quantity_annotation(
         msg = "Annotated quantity must include exactly one Unit(...)"
         raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
-    while isinstance(quantity_type, typing_extensions.TypeAliasType):
+    while isinstance(quantity_type, TypeAliasType):
         quantity_type = quantity_type.__value__
 
     if get_origin(quantity_type) is Quantity:

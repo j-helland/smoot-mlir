@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from numbers import Number
 from types import FunctionType
-from typing import Final, TypeAlias
+from typing import Final
 
 from units.annotations import QuantityTypeInfo, parse_quantity_annotation
 from units.diagnostics import Diagnostic, UnitsCompileError
@@ -33,7 +33,7 @@ class Symbol:
     type: QuantityTypeInfo | None = None
 
 
-SymbolTableType: TypeAlias = dict[str, Symbol]
+type SymbolTableType = dict[str, Symbol]
 
 UNKNOWN_SOURCE_FILE: Final[str] = "<unknown>"
 

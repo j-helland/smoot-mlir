@@ -63,9 +63,9 @@ cmake \
 
 [tasks.build-backend]
 run = """
-PYTHON_EXE="${PYTHON_EXE:-$(uv python find)}"
-PYBIND11_DIR="${PYBIND11_DIR:-$(uv run -- python -m pybind11 --cmakedir)}"
-LIT_EXE="${LIT_EXE:-$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')}"
+PYTHON_EXE="${PYTHON_EXE:-$(uv run --package devtools -- python -c 'import sys; print(sys.executable)')}"
+PYBIND11_DIR="${PYBIND11_DIR:-$(uv run --package devtools -- python -m pybind11 --cmakedir)}"
+LIT_EXE="${LIT_EXE:-$(uv run --package devtools -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -83,6 +83,11 @@ cmake -E touch build/.mise-build.stamp
 """
 # Only execute the task if any of the following have changed:
 sources = [
+  "mise.toml",
+  "pyproject.toml",
+  "devtools/python/pyproject.toml",
+  "frontend/python/pyproject.toml",
+  "uv.lock",
   "CMakeLists.txt",
   "tools/**/*.h",
   "tools/**/*.td",
@@ -104,9 +109,9 @@ outputs = ["build/.mise-build.stamp"]
 [tasks.build-backend-sanitizers]
 description = "Build the C++ backend with AddressSanitizer and UBSan"
 run = """
-PYTHON_EXE="${PYTHON_EXE:-$(uv python find)}"
-PYBIND11_DIR="${PYBIND11_DIR:-$(uv run -- python -m pybind11 --cmakedir)}"
-LIT_EXE="${LIT_EXE:-$(uv run -- python -c 'import shutil; print(shutil.which("lit"))')}"
+PYTHON_EXE="${PYTHON_EXE:-$(uv run --package devtools -- python -c 'import sys; print(sys.executable)')}"
+PYBIND11_DIR="${PYBIND11_DIR:-$(uv run --package devtools -- python -m pybind11 --cmakedir)}"
+LIT_EXE="${LIT_EXE:-$(uv run --package devtools -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build-sanitizers \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
@@ -126,6 +131,11 @@ cmake --build build-sanitizers
 cmake -E touch build-sanitizers/.mise-build.stamp
 """
 sources = [
+  "mise.toml",
+  "pyproject.toml",
+  "devtools/python/pyproject.toml",
+  "frontend/python/pyproject.toml",
+  "uv.lock",
   "CMakeLists.txt",
   "tools/**/*.h",
   "tools/**/*.td",

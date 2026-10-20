@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, assert_type
 
 import pytest
 
@@ -6,12 +6,11 @@ from units import Quantity, Unit, UnitsCompileError
 from units.annotations import QuantityTypeInfo, parse_quantity_annotation
 
 if TYPE_CHECKING:
-    import typing_extensions
 
     def _check_quantity_methods(x: Annotated[Quantity, Unit("meter")]) -> None:
-        typing_extensions.assert_type(x * x, Quantity[float])
-        typing_extensions.assert_type(x.to("km"), Quantity[float])
-        typing_extensions.assert_type(x.to(Unit("km")), Quantity[float])
+        assert_type(x * x, Quantity[float])
+        assert_type(x.to("km"), Quantity[float])
+        assert_type(x.to(Unit("km")), Quantity[float])
 
 
 def test_quantity_info_parsing():
