@@ -1,14 +1,8 @@
 monorepo_root = true
 
-[tools]
-ruff = "0.17.1"
-ty = "0.0.89"
-
-[settings]
-experimental = true
-
 [monorepo]
 config_roots = ["frontend/python/", "units-rs/"]
+lockfile = true
 
 [env]
 UV_FROZEN = true
