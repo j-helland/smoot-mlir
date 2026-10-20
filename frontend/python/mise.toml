@@ -1,5 +1,6 @@
-[settings]
-experimental = true
+[tools]
+ruff = "0.17.1"
+ty = "0.0.89"
 
 [tasks.test]
 depends = ["//:build-backend"]
