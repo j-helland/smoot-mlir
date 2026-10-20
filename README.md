@@ -1,69 +1,22 @@
 [![NixCI](https://nix-ci.com/badge/gh:j-helland:smoot-mlir)](https://nix-ci.com/gh:j-helland:smoot-mlir)
 
-# Setup
-
-> [!WARNING]
-> This project only supports Apple Silicon, currently.
-
-You need [mise](https://mise.jdx.dev/installing-mise.html).
-
-## Apple Silicon
-Clone and build LLVM with MLIR support.
-Make sure that MLIR supports plugins via dynamic linking.
-```shell
-git clone https://github.com/llvm/llvm-project.git
-mkdir llvm-project/build
-cd llvm-project/build
-
-# configure
-cmake -G Ninja ../llvm \
-    -DLLVM_ENABLE_PROJECTS=mlir \
-    -DLLVM_BUILD_EXAMPLES=ON \
-    -DLLVM_TARGETS_TO_BUILD=host \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_ENABLE_ASSERTIONS=ON \
-    -DCMAKE_C_COMPILER=/usr/bin/clang \
-    -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
-    -DLLVM_CCACHE_BUILD=ON \
-    -DLLVM_ENABLE_PLUGINS=ON \
-    -DLLVM_BUILD_LLVM_DYLIB=ON \
-    -DMLIR_LINK_MLIR_DYLIB=ON \
-    -DBUILD_SHARED_LIBS=OFF
-
-# build
-ninja
-
-# install
-# (fish shell)
-fish_add_path $(pwd)/bin
-```
-
 # Usage
 
 TODO(jwh)
 
-# C++ Tooling
+# Development
 
-The repository uses LLVM-style formatting and compile-database-backed linting for
-the MLIR/C++ code.
+## Setup
+> [!WARNING]
+> This project only supports Apple Silicon, currently.
 
-```shell
-# Format C++ and TableGen files.
-mise run format-cpp
+You need [mise](https://mise.jdx.dev/installing-mise.html) and [nix](https://nixos.org/download/).
 
-# Check formatting without modifying files.
-mise run format-cpp-check
+Run `mise run shell` to enter a `nix develop` session. This will take some time the first time around to build the environment, including MLIR with Python bindings enabled.
 
-# Run clang-tidy using build/compile_commands.json.
-mise run tidy-cpp
+Run `mise run` to see a list of available commands.
 
-# Run the full C++ lint stack.
-mise run lint
-
-# Run backend tests with AddressSanitizer and UndefinedBehaviorSanitizer.
-mise run test-backend-sanitizers
-```
-
+## C++ Tooling
 The sanitizer tests disable ASan container overflow checks because the
 prebuilt MLIR library is not ASan-instrumented. STL containers shared between
 the two builds can otherwise produce false positives during pattern registration.
@@ -81,5 +34,10 @@ cmake -S . -B build \
   -DUNITS_ENABLE_UBSAN=ON
 ```
 
+# Architecture
+
+TODO(jwh)
+
 # TODOs
-- [ ] Use `cbindgen` in Rust core to generate header instead of manually maintaining.
+
+- [ ] Build system to package MLIR runtime and bindings with the wheel. Probably scikit-build-core.
