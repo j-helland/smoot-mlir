@@ -1,4 +1,4 @@
-from typing import Annotated, TypeAlias
+from typing import Annotated
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
@@ -7,7 +7,7 @@ from units import Quantity, Unit, UnitsCompileError
 from units.ast_parser import transform_ast
 from units.ir import Assign, Binary, Constant, Function, Name, Operator, Return
 
-Meters: TypeAlias = Annotated[Quantity[float], Unit("meter")]
+type Meters = Annotated[Quantity[float], Unit("meter")]
 
 
 def test_transform_return_mul():

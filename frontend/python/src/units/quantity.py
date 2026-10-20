@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Annotated, Any, Generic
 
-import typing_extensions
+from typing_extensions import TypeVar
 
-ScalarT = typing_extensions.TypeVar("ScalarT", default=float)
+ScalarT = TypeVar("ScalarT", default=float)
 
 
 @dataclass(frozen=True)

@@ -1,12 +1,12 @@
-from typing import Annotated, TypeAlias
+from typing import Annotated
 
 import pytest
 
 from units import Quantity, Unit, UnitsCompileError, compile
 
-Meter: TypeAlias = Annotated[Quantity, Unit("meter")]
-Second: TypeAlias = Annotated[Quantity, Unit("second")]
-MetersPerSecond: TypeAlias = Annotated[Quantity, Unit("meter / second")]
+type Meter = Annotated[Quantity, Unit("meter")]
+type Second = Annotated[Quantity, Unit("second")]
+type MetersPerSecond = Annotated[Quantity, Unit("meter / second")]
 
 
 def test_compile_happy_path():

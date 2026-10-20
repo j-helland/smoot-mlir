@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     F = TypeVar("F", bound=FunctionType)
 
 
-def verify(fn: F) -> F:
+def verify[F: FunctionType](fn: F) -> F:
     backend = NativeBackend.default()
     fn_ast = transform_ast(fn)
     fn_ir = emit_mlir(fn_ast)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import TypeAlias
 
 from units.span import SourceSpan
 
@@ -112,7 +111,7 @@ def _render_underline(span: SourceSpan) -> str:
     return " " * start + "^" * max(1, end - start)
 
 
-DiagnosticLike: TypeAlias = str | Diagnostic
+type DiagnosticLike = str | Diagnostic
 
 
 class UnitsCompileError(Exception):

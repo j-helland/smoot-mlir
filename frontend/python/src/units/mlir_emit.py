@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TypeAlias
 
 from units.annotations import QuantityTypeInfo, Unit
 from units.diagnostics import Diagnostic, UnitsCompileError
@@ -19,8 +18,8 @@ class MlirValue:
         return self.name
 
 
-MlirSymbolTableType: TypeAlias = dict[str, MlirValue]
-LineMapType: TypeAlias = dict[int, SourceSpan]
+type MlirSymbolTableType = dict[str, MlirValue]
+type LineMapType = dict[int, SourceSpan]
 
 
 @dataclass(frozen=True, slots=True)
