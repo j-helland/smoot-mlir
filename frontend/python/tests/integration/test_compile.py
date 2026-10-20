@@ -1,15 +1,31 @@
 from typing import Annotated, TypeAlias
 
 import pytest
+
 from units import Quantity, Unit, UnitsCompileError, compile
 
 Meter: TypeAlias = Annotated[Quantity, Unit("meter")]
+Second: TypeAlias = Annotated[Quantity, Unit("second")]
+MetersPerSecond: TypeAlias = Annotated[Quantity, Unit("meter / second")]
 
 
 def test_compile_happy_path():
     @compile
     def double(x: Meter) -> Meter:
         return x + x
+
+    assert double(1.0) == pytest.approx(2.0)
+    assert double(5.5) == pytest.approx(11.0)
+
+
+def test_compile_local_alias():
+    @compile
+    def copied(x: Meter) -> Meter:
+        y = x
+        return y
+
+    assert copied(1.0) == pytest.approx(1.0)
+    assert copied(2.0) == pytest.approx(2.0)
 
 
 def test_compile_invalid():

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Annotated
 
 import pytest
+
 from units import Quantity, Unit, UnitsCompileError
 from units.annotations import QuantityTypeInfo, parse_quantity_annotation
 

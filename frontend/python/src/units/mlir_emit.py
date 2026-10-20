@@ -6,7 +6,7 @@ from typing import TypeAlias
 
 from units.annotations import QuantityTypeInfo, Unit
 from units.diagnostics import Diagnostic, UnitsCompileError
-from units.ir import Binary, Expr, Function, Name, Node, Operator, Return, Stmt
+from units.ir import Assign, Binary, Expr, Function, Name, Node, Operator, Return, Stmt
 from units.span import SourceSpan
 
 
@@ -76,12 +76,12 @@ class MlirEmitter:
             for name, type_info in sig.parameters
         }
         for stmt in function.body:
-            value = self.emit_stmt(
+            if value := self.emit_stmt(
                 stmt,
                 symbols=symbols,
                 return_type=function.signature.result,
-            )
-            self._append_line(f"    {value}")
+            ):
+                self._append_line(f"    {value}")
         self._append_line("  }")
 
     def emit_stmt(
@@ -90,8 +90,12 @@ class MlirEmitter:
         *,
         symbols: MlirSymbolTableType,
         return_type: QuantityTypeInfo,
-    ) -> str:
+    ) -> str | None:
         match stmt:
+            case Assign(name=name, expr=expr, declared_type=None):
+                symbols[name] = self.emit_expr(expr, symbols)
+                return None
+
             case Return(expr=expr):
                 value_mlir = self.emit_expr(expr, symbols)
                 return f"return {value_mlir}: {emit_quantity_type(return_type)}"
@@ -120,7 +124,7 @@ class MlirEmitter:
                     f"      : {emit_quantity_type(lhs_type)}, {emit_quantity_type(rhs_type)}"
                 )
 
-                return MlirValue(result_name)
+                return MlirValue(name=result_name)
 
             case _:
                 msg = f"unsupported IR expression: {expr!r}"
