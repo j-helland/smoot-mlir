@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20.0)
+cmake_minimum_required(VERSION 3.26.0)
 
 # Cargo and CMake do not automatically coordinate on the macOS deploy target
 # so we need to wire that ourselves.
