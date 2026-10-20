@@ -65,6 +65,8 @@ NANOBIND_DIR="${NANOBIND_DIR:-$(uv run --package devtools -- python -m nanobind 
 LIT_EXE="${LIT_EXE:-$(uv run --package devtools -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build \
+    -DMLIR_DIR="$MLIR_DIR" \
+    -DLLVM_DIR="$LLVM_DIR" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \

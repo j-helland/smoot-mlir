@@ -1,22 +1,30 @@
 find_package(Python 3.12 REQUIRED COMPONENTS
   Interpreter
   Development.Module
-  Development.SABIModule
 )
 find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(_units_backend
-  STABLE_ABI
   UnitsBackendModule.cpp
   CompiledFunction.cpp
   Compiler.cpp
 )
 
 target_link_libraries(_units_backend PRIVATE
+  UnitsCAPI
   MLIRUnits
   UnitsToStandard
-  MLIR
+
+  MLIRCAPIIR
+  MLIRIR
+  MLIRParser
+  MLIRPass
   MLIRExecutionEngine
+  MLIRArithToLLVM
+  MLIRFuncToLLVM
+  MLIRReconcileUnrealizedCasts
+  MLIRBuiltinToLLVMIRTranslation
+  MLIRLLVMToLLVMIRTranslation
 )
 
 set_target_properties(_units_backend PROPERTIES
