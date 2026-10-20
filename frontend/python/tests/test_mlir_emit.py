@@ -2,6 +2,7 @@ from types import FunctionType
 from typing import Annotated
 
 import pytest
+
 from units import Quantity, Unit
 from units.ast_parser import transform_ast
 from units.mlir_emit import emit_mlir

@@ -1,16 +1,12 @@
-from collections.abc import Callable
 from types import FunctionType
-from typing import TYPE_CHECKING, TypeVar
 
+from units import _units_backend
 from units.ast_parser import transform_ast
 from units.driver import NativeBackend
 from units.mlir_emit import emit_mlir
 
-if TYPE_CHECKING:
-    F = TypeVar("F", bound=FunctionType)
 
-
-def compile(fn: FunctionType) -> Callable[[float], float]:
+def compile(fn: FunctionType) -> _units_backend.CompiledFunction:
     backend = NativeBackend.default()
     fn_ast = transform_ast(fn)
     fn_ir = emit_mlir(fn_ast)

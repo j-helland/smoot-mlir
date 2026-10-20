@@ -3,9 +3,9 @@ from __future__ import annotations
 import functools
 import shutil
 import subprocess
-from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated
+from types import FunctionType
+from typing import TYPE_CHECKING, Annotated, TypeVar
 
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,6 +14,9 @@ from rich import print
 from units import _units_backend
 from units.diagnostics import Diagnostic, UnitsCompileError
 from units.mlir_emit import GeneratedModule
+
+if TYPE_CHECKING:
+    F = TypeVar("F", bound=FunctionType)
 
 
 class NativeBackend:
@@ -35,7 +38,7 @@ class NativeBackend:
         self,
         input: GeneratedModule | str,
         entrypoint: str,
-    ) -> Callable[[float], float]:
+    ) -> _units_backend.CompiledFunction:
         text = input.text if isinstance(input, GeneratedModule) else input
         try:
             return _units_backend.compile_mlir(text, entrypoint)

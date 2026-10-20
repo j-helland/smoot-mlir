@@ -2,6 +2,7 @@ from typing import Annotated, TypeAlias
 
 import pytest
 from syrupy.assertion import SnapshotAssertion
+
 from units import Quantity, Unit, UnitsCompileError
 from units.ast_parser import transform_ast
 from units.ir import Assign, Binary, Constant, Function, Name, Operator, Return
