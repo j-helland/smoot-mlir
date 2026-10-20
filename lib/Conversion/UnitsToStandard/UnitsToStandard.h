@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mlir/Pass/PassRegistry.h"
+#include <mlir/Pass/PassRegistry.h>
 
 #include <memory>
 
