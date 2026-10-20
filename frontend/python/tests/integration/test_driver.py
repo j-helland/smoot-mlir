@@ -22,22 +22,16 @@ def test_verify_happy_path():
     NativeBackend.default().verify_mlir(units_mlir)
 
 
-def test_verify_invalid():
+def test_emit_mlir_invalid():
     """Verify that the compiler backend fails on an invalid computation."""
 
     def distance_invalid(velocity: MetersPerSecond, dt: Second) -> Meter:
         return velocity + dt
 
     func_ast = transform_ast(distance_invalid)
-    units_mlir = emit_mlir(func_ast)
 
     with pytest.raises(UnitsCompileError):
-        NativeBackend.default().verify_mlir(units_mlir)
-
-
-def test_verify_not_mlir():
-    with pytest.raises(UnitsCompileError):
-        NativeBackend.default().verify_mlir("hello")
+        emit_mlir(func_ast)
 
 
 def test_compile_happy_path():
@@ -50,8 +44,3 @@ def test_compile_happy_path():
 
     assert compiled_func(2.0) == pytest.approx(4.0)
     assert compiled_func(5.5) == pytest.approx(11.0)
-
-
-def test_compile_not_mlir():
-    with pytest.raises(UnitsCompileError):
-        NativeBackend.default().compile_mlir("hello", "func")

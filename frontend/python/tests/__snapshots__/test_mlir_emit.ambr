@@ -2,10 +2,9 @@
 # name: test_mlir_emitter[func_add]
   '''
   module {
-    func.func @func_add(%x: !units.quantity<f64, #units.unit<"meter">>, %y: !units.quantity<f64, #units.unit<"meter">>) -> !units.quantity<f64, #units.unit<"meter">> {
-      %0 = units.add %x, %y
-        : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
-      return %0: !units.quantity<f64, #units.unit<"meter">>
+    func.func @func_add(%arg0: !units.quantity<f64, #units.unit<"meter">>, %arg1: !units.quantity<f64, #units.unit<"meter">>) -> !units.quantity<f64, #units.unit<"meter">> {
+      %0 = units.add %arg0, %arg1 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
+      return %0 : !units.quantity<f64, #units.unit<"meter">>
     }
   }
   
@@ -14,10 +13,9 @@
 # name: test_mlir_emitter[func_mul]
   '''
   module {
-    func.func @func_mul(%velocity: !units.quantity<f64, #units.unit<"meter / second">>, %dt: !units.quantity<f64, #units.unit<"second">>) -> !units.quantity<f64, #units.unit<"meter">> {
-      %0 = units.mul %velocity, %dt
-        : !units.quantity<f64, #units.unit<"meter / second">>, !units.quantity<f64, #units.unit<"second">>
-      return %0: !units.quantity<f64, #units.unit<"meter">>
+    func.func @func_mul(%arg0: !units.quantity<f64, #units.unit<"meter / second">>, %arg1: !units.quantity<f64, #units.unit<"second">>) -> !units.quantity<f64, #units.unit<"meter">> {
+      %0 = units.mul %arg0, %arg1 : !units.quantity<f64, #units.unit<"meter / second">>, !units.quantity<f64, #units.unit<"second">>
+      return %0 : !units.quantity<f64, #units.unit<"meter">>
     }
   }
   

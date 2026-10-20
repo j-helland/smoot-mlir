@@ -41,4 +41,5 @@ add_mlir_dialect_library(MLIRUnits
 mlir_target_link_libraries(MLIRUnits PUBLIC
   MLIRIR
   MLIRSupport
+  MLIRInferTypeOpInterface
 )

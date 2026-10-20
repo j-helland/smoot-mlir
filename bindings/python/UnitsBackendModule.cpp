@@ -8,6 +8,9 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include <mlir-c/IR.h>
+#include <mlir-c/Support.h>
+#include <mlir/Bindings/Python/NanobindAdaptors.h>
+#include <mlir/CAPI/IR.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/DialectRegistry.h>
@@ -16,7 +19,6 @@
 #include <mlir/IR/Verifier.h>
 #include <mlir/Parser/Parser.h>
 #include <mlir/Support/LLVM.h>
-#include <mlir/Bindings/Python/NanobindAdaptors.h>
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
@@ -39,45 +41,11 @@ std::string getDiagnosticText(const std::string &diagnostics,
   return fallback;
 }
 
-void verifyMlir(std::string const &text) {
-  mlir::DialectRegistry registry;
-  registry.insert<mlir::func::FuncDialect>();
-  registry.insert<mlir::units::UnitsDialect>();
-
-  mlir::MLIRContext context(registry);
-  context.getOrLoadDialect<mlir::func::FuncDialect>();
-  context.getOrLoadDialect<mlir::units::UnitsDialect>();
-
-  llvm::SourceMgr sourceMgr;
-  sourceMgr.AddNewSourceBuffer(
-      llvm::MemoryBuffer::getMemBufferCopy(text, "<python-generated>"),
-      llvm::SMLoc());
-
-  std::string diagnostics;
-  llvm::raw_string_ostream diagnosticsStream(diagnostics);
-  mlir::SourceMgrDiagnosticHandler diagnosticHandler(sourceMgr, &context,
-                                                     diagnosticsStream);
-
-  mlir::OwningOpRef<mlir::ModuleOp> module =
-      mlir::parseSourceFile<mlir::ModuleOp>(sourceMgr, &context);
-
-  diagnosticsStream.flush();
-
-  if (!module) {
-    throw BackendError(
-        getDiagnosticText(diagnostics, "failed to parse generated MLIR"));
-  }
-
-  if (mlir::failed(mlir::verify(module.get()))) {
-    diagnosticsStream.flush();
-    throw BackendError(
-        getDiagnosticText(diagnostics, "failed to verify generated MLIR"));
-  }
-}
-
 } // namespace units::backend
 
 NB_MODULE(_units_backend, module) {
+  // Registers the Python exception type.
+  // NOLINTNEXTLINE(bugprone-unused-raii,bugprone-throw-keyword-missing)
   nb::exception<units::backend::BackendError>(module, "BackendError");
   nb::class_<units::backend::CompiledFunction>(module, "CompiledFunction")
       .def("__call__", &units::backend::CompiledFunction::invoke);
@@ -90,10 +58,13 @@ NB_MODULE(_units_backend, module) {
 
   module.doc() = "Native MLIR backend bindings for the units frontend.";
 
-  module.def("verify_mlir", &units::backend::verifyMlir, nb::arg("text"),
-             "Parse and verify Units MLIR in-process.");
-  module.def("compile_mlir", &units::backend::compileMlir, nb::arg("text"),
-             nb::arg("entrypoint"), "Compile a placeholder native function.");
+  module.def(
+      "compile_mlir",
+      [](MlirModule input, const std::string &entrypoint) {
+        return units::backend::compileMlir(unwrap(input), entrypoint);
+      },
+      nb::arg("module"), nb::arg("entrypoint"));
+
   module.def(
       "register_dialect",
       [](MlirContext context) {
@@ -102,4 +73,13 @@ NB_MODULE(_units_backend, module) {
         mlirDialectHandleLoadDialect(handle, context);
       },
       nb::arg("context"));
+
+  module.def(
+      "quantity_type",
+      [](MlirType elementType, const std::string &unitExpression) {
+        return mlirUnitsQuantityTypeGet(
+            elementType,
+            mlirStringRefCreate(unitExpression.data(), unitExpression.size()));
+      },
+      nb::arg("element_type"), nb::arg("unit_expression"));
 }

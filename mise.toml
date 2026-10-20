@@ -179,11 +179,11 @@ run = """
 description = "Run clang-tidy over C++ translation units"
 depends = "//:build-backend"
 run = """
-"$CLANG_TIDY_EXE" -quiet -p build $(
-    git ls-files \
-        'lib/**/*.cpp' \
-        'tools/**/*.cpp' \
-        'bindings/**/*.cpp' \
-        'unittests/**/*.cpp'
-)
+git ls-files -z \
+    'lib/**/*.cpp' \
+    'tools/**/*.cpp' \
+    'bindings/**/*.cpp' \
+    'unittests/**/*.cpp' |
+    xargs -0 -n 1 -P "${TIDY_JOBS:-8}" \
+        "$CLANG_TIDY_EXE" -quiet -p build
 """

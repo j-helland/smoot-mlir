@@ -33,3 +33,33 @@ set_target_properties(_units_backend PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY
     ${PROJECT_SOURCE_DIR}/frontend/python/src/units
 )
+
+# tablegen
+set(LLVM_TARGET_DEFINITIONS
+  "${CMAKE_CURRENT_SOURCE_DIR}/UnitsOps.td"
+)
+
+mlir_tablegen(_units_ops_gen.py
+  -gen-python-op-bindings
+  -bind-dialect=units
+)
+
+add_public_tablegen_target(UnitsPythonOpsGen)
+
+set(UNITS_PYTHON_DIALECT_DIR
+  "${PROJECT_SOURCE_DIR}/frontend/python/src/units/dialects"
+)
+
+add_custom_target(UnitsPythonBindings ALL
+  COMMAND "${CMAKE_COMMAND}" -E make_directory
+    "${UNITS_PYTHON_DIALECT_DIR}"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${CMAKE_CURRENT_BINARY_DIR}/_units_ops_gen.py"
+    "${UNITS_PYTHON_DIALECT_DIR}/_units_ops_gen.py"
+  BYPRODUCTS
+    "${UNITS_PYTHON_DIALECT_DIR}/_units_ops_gen.py"
+  VERBATIM
+)
+
+add_dependencies(UnitsPythonBindings UnitsPythonOpsGen)
+add_dependencies(_units_backend UnitsPythonBindings)
