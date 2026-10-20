@@ -1,6 +1,7 @@
 #include "Units/UnitsTypes.h"
 #include "Units/UnitsAttrs.h"
-#include "mlir/IR/OpImplementation.h"
+
+#include <mlir/IR/OpImplementation.h>
 
 namespace units = mlir::units;
 

@@ -3,8 +3,8 @@
 #include "lib/Dialect/Units/UnitsOps.h"
 #include "lib/Dialect/Units/UnitsTypes.h"
 
-#include "mlir/IR/Builders.h"
-#include "llvm/ADT/TypeSwitch.h"
+#include <mlir/IR/Builders.h>
+#include <llvm/ADT/TypeSwitch.h>
 
 #include "lib/Dialect/Units/UnitsDialect.cpp.inc"
 #define GET_ATTRDEF_CLASSES
