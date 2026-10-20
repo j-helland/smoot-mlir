@@ -64,7 +64,7 @@ cmake \
 [tasks.build-backend]
 run = """
 PYTHON_EXE="${PYTHON_EXE:-$(uv run --package devtools -- python -c 'import sys; print(sys.executable)')}"
-PYBIND11_DIR="${PYBIND11_DIR:-$(uv run --package devtools -- python -m pybind11 --cmakedir)}"
+NANOBIND_DIR="${NANOBIND_DIR:-$(uv run --package devtools -- python -m nanobind --cmake_dir)}"
 LIT_EXE="${LIT_EXE:-$(uv run --package devtools -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build \
@@ -76,7 +76,7 @@ cmake -S . -B build \
     -DCMAKE_NM="$NM" \
     -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
     -DPython_EXECUTABLE="$PYTHON_EXE" \
-    -Dpybind11_DIR="$PYBIND11_DIR" \
+    -Dnanobind_DIR="$NANOBIND_DIR" \
     -DLIT_EXECUTABLE="$LIT_EXE"
 cmake --build build
 cmake -E touch build/.mise-build.stamp
@@ -110,7 +110,7 @@ outputs = ["build/.mise-build.stamp"]
 description = "Build the C++ backend with AddressSanitizer and UBSan"
 run = """
 PYTHON_EXE="${PYTHON_EXE:-$(uv run --package devtools -- python -c 'import sys; print(sys.executable)')}"
-PYBIND11_DIR="${PYBIND11_DIR:-$(uv run --package devtools -- python -m pybind11 --cmakedir)}"
+NANOBIND_DIR="${NANOBIND_DIR:-$(uv run --package devtools -- python -m nanobind --cmake_dir)}"
 LIT_EXE="${LIT_EXE:-$(uv run --package devtools -- python -c 'import shutil; print(shutil.which("lit"))')}"
 
 cmake -S . -B build-sanitizers \
@@ -122,7 +122,7 @@ cmake -S . -B build-sanitizers \
     -DCMAKE_NM="$NM" \
     -DMLIR_TABLEGEN_EXE_ABSOLUTE="$MLIR_TABLEGEN_EXE" \
     -DPython_EXECUTABLE="$PYTHON_EXE" \
-    -Dpybind11_DIR="$PYBIND11_DIR" \
+    -Dnanobind_DIR="$NANOBIND_DIR" \
     -DLIT_EXECUTABLE="$LIT_EXE" \
     -DCMAKE_BUILD_TYPE=Debug \
     -DUNITS_ENABLE_ASAN=ON \
@@ -148,6 +148,9 @@ sources = [
   "units-rs/**/*.h",
   "units-rs/**/*.rs",
   "mlir-tests/**/*",
+  "bindings/**/CMakeLists.txt",
+  "bindings/**/*.h",
+  "bindings/**/*.cpp",
   "unittests/**/*.cpp",
   "unittests/**/CMakeLists.txt",
 ]

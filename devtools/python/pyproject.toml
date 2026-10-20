@@ -6,5 +6,5 @@ requires-python = ">=3.14"
 [dependency-groups]
 dev = [
     "lit>=18.1.8",
-    "pybind11>=3.0.4",
+    "nanobind>=2.13.0",
 ]
