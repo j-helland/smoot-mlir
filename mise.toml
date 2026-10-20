@@ -56,6 +56,9 @@ cmake \
 description = "Run backend tests under AddressSanitizer and UBSan"
 depends = "//:build-backend-sanitizers"
 run = """
+# Prebuilt MLIR mutates STL containers shared with our ASan-instrumented code
+# without updating their annotations. Disable only container overflow checks.
+ASAN_OPTIONS="${ASAN_OPTIONS:+$ASAN_OPTIONS:}detect_container_overflow=0" \
 cmake \
   --build build-sanitizers \
   --target check-units

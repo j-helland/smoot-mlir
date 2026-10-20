@@ -64,6 +64,10 @@ mise run lint
 mise run test-backend-sanitizers
 ```
 
+The sanitizer tests disable ASan container overflow checks because the
+prebuilt MLIR library is not ASan-instrumented. STL containers shared between
+the two builds can otherwise produce false positives during pattern registration.
+
 `tidy-cpp` depends on `build-backend`, which configures CMake with
 `CMAKE_EXPORT_COMPILE_COMMANDS=ON`.
 

@@ -9,9 +9,13 @@ add_executable(UnitsDialectTests
 target_link_libraries(UnitsDialectTests
   PRIVATE
   MLIRUnits
+  GTest::gtest_main
+)
+
+mlir_target_link_libraries(UnitsDialectTests
+  PRIVATE
   MLIRIR
   MLIRSupport
-  GTest::gtest_main
 )
 
 gtest_add_tests(TARGET UnitsDialectTests)

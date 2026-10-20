@@ -1,7 +1,12 @@
-find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(Python 3.12 REQUIRED COMPONENTS
+  Interpreter
+  Development.Module
+  Development.SABIModule
+)
 find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(_units_backend
+  STABLE_ABI
   UnitsBackendModule.cpp
   CompiledFunction.cpp
   Compiler.cpp
