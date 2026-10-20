@@ -33,4 +33,4 @@ def test_mlir_emitter(func: FunctionType, snapshot: object):
     fn = transform_ast(func)
     mlir = emit_mlir(fn)
 
-    assert mlir.text == snapshot
+    assert str(mlir) == snapshot

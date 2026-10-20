@@ -4,8 +4,12 @@
 #include "Units/UnitsTypes.h"
 
 #include <mlir/IR/Builders.h>
+#include <mlir/IR/BuiltinAttributes.h>
+#include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/OpImplementation.h>
+#include <mlir/IR/OperationSupport.h>
+#include <mlir/IR/Region.h>
 #include <mlir/Support/LLVM.h>
 
 #include <llvm/ADT/STLFunctionalExtras.h>
@@ -144,17 +148,31 @@ static bool isSameUnit(units::UnitAttr const &lhs, units::UnitAttr const &rhs) {
   return lhs.getExpression() == rhs.getExpression();
 }
 
-void units::MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                         mlir::Value lhs, mlir::Value rhs) {
-  auto lhsType = llvm::cast<units::QuantityType>(lhs.getType());
-  auto rhsType = llvm::cast<units::QuantityType>(rhs.getType());
+llvm::LogicalResult units::MulOp::inferReturnTypes(
+    ::mlir::MLIRContext *context, ::std::optional<::mlir::Location> location,
+    ::mlir::ValueRange operands, ::mlir::DictionaryAttr attributes,
+    ::mlir::OpaqueProperties properties, ::mlir::RegionRange regions,
+    ::llvm::SmallVectorImpl<::mlir::Type> &inferredReturnTypes) {
 
-  auto resultType = inferMulResultType(builder.getContext(), lhsType, rhsType);
-  assert(llvm::succeeded(resultType) &&
-         "failed to infer units.mul result type");
+  if (operands.size() != 2) {
+    return mlir::emitOptionalError(location, "expected two operands");
+  }
 
-  state.addOperands({lhs, rhs});
-  state.addTypes(*resultType);
+  auto lhs = llvm::dyn_cast<units::QuantityType>(operands[0].getType());
+  auto rhs = llvm::dyn_cast<units::QuantityType>(operands[1].getType());
+
+  if (!lhs || !rhs) {
+    return mlir::emitOptionalError(location, "expected quantity operands");
+  }
+
+  auto result = inferMulResultType(context, lhs, rhs);
+  if (mlir::failed(result)) {
+    return mlir::emitOptionalError(location,
+                                   "cannot infer units.mul result type");
+  }
+
+  inferredReturnTypes.push_back(*result);
+  return mlir::success();
 }
 
 mlir::ParseResult units::MulOp::parse(mlir::OpAsmParser &parser,
@@ -240,17 +258,34 @@ inferAddResultType(mlir::MLIRContext *context, units::QuantityType lhsType,
                                   *resultUnit);
 }
 
-void units::AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                         mlir::Value lhs, mlir::Value rhs) {
-  auto lhsType = llvm::cast<units::QuantityType>(lhs.getType());
-  auto rhsType = llvm::cast<units::QuantityType>(rhs.getType());
+llvm::LogicalResult units::AddOp::inferReturnTypes(
+    mlir::MLIRContext *context, std::optional<mlir::Location> location,
+    mlir::ValueRange operands, mlir::DictionaryAttr attributes,
+    mlir::OpaqueProperties properties, mlir::RegionRange regions,
+    llvm::SmallVectorImpl<mlir::Type> &inferredReturnTypes) {
 
-  auto resultType = inferAddResultType(builder.getContext(), lhsType, rhsType);
-  assert(llvm::succeeded(resultType) &&
-         "failed to infer units.add result type");
+  if (operands.size() != 2) {
+    return mlir::emitOptionalError(location, "expected two operands");
+  }
 
-  state.addOperands({lhs, rhs});
-  state.addTypes(*resultType);
+  auto lhs = llvm::dyn_cast<units::QuantityType>(operands[0].getType());
+  auto rhs = llvm::dyn_cast<units::QuantityType>(operands[1].getType());
+
+  if (!lhs || !rhs) {
+    return mlir::emitOptionalError(location, "expected quantity operands");
+  }
+  if (lhs.getElementType() != rhs.getElementType()) {
+    return mlir::emitOptionalError(location, "element types must match");
+  }
+
+  auto result = inferAddResultType(context, lhs, rhs);
+  if (mlir::failed(result)) {
+    return mlir::emitOptionalError(location,
+                                   "cannot infer units.add result type");
+  }
+
+  inferredReturnTypes.push_back(*result);
+  return mlir::success();
 }
 
 mlir::ParseResult units::AddOp::parse(mlir::OpAsmParser &parser,

@@ -13,6 +13,7 @@
 #include <mlir/IR/BuiltinOps.h>
 #include <mlir/IR/DialectRegistry.h>
 #include <mlir/IR/MLIRContext.h>
+#include <mlir/IR/OwningOpRef.h>
 #include <mlir/IR/Verifier.h>
 #include <mlir/Parser/Parser.h>
 #include <mlir/Pass/Pass.h>
@@ -29,29 +30,25 @@
 
 namespace units::backend {
 
-std::unique_ptr<CompiledFunction> compileMlir(const std::string &text,
-                                              const std::string &entryPoint) {
+static void configureContext(mlir::ModuleOp module) {
   mlir::DialectRegistry registry;
   registry.insert<mlir::func::FuncDialect, mlir::arith::ArithDialect,
                   mlir::LLVM::LLVMDialect, mlir::units::UnitsDialect>();
-  mlir::MLIRContext context(registry);
-  auto module = mlir::parseSourceString<mlir::ModuleOp>(text, &context);
 
-  if (!module) {
-    throw BackendError("failed to parse placeholder module");
-  }
-  if (mlir::failed(mlir::verify(module.get()))) {
-    throw BackendError("failed to verify placeholder module");
-  }
+  module->getContext()->appendDialectRegistry(registry);
+}
 
-  // lowering
-  mlir::PassManager unitsPasses(&context);
+static void lowerUnitsToArith(mlir::ModuleOp module) {
+  mlir::PassManager unitsPasses(module->getContext());
   unitsPasses.addPass(mlir::units::createUnitsToStandard());
-  if (mlir::failed(unitsPasses.run(module.get()))) {
+  if (mlir::failed(unitsPasses.run(module.getOperation()))) {
     throw BackendError("failed to lower Units operations");
   }
+}
 
-  auto entry = module->lookupSymbol<mlir::func::FuncOp>(entryPoint);
+static void prepareEntrypoint(mlir::ModuleOp module,
+                              const std::string &entrypoint) {
+  auto entry = module.lookupSymbol<mlir::func::FuncOp>(entrypoint);
   if (!entry || entry.isExternal()) {
     throw BackendError("entrypoint must name a function definition");
   }
@@ -62,24 +59,41 @@ std::unique_ptr<CompiledFunction> compileMlir(const std::string &text,
     throw BackendError("entrypoint must have function signature (f64) -> f64");
   }
 
-  entry->setAttr("llvm.emit_c_interface", mlir::UnitAttr::get(&context));
-  mlir::PassManager llvmPasses(&context);
+  entry->setAttr("llvm.emit_c_interface",
+                 mlir::UnitAttr::get(module->getContext()));
+}
+
+static void lowerToLLVM(mlir::ModuleOp module) {
+  mlir::PassManager llvmPasses(module->getContext());
   llvmPasses.addPass(mlir::createArithToLLVMConversionPass());
   llvmPasses.addPass(mlir::createConvertFuncToLLVMPass());
   llvmPasses.addPass(mlir::createReconcileUnrealizedCastsPass());
-  if (mlir::failed(llvmPasses.run(module.get()))) {
+  if (mlir::failed(llvmPasses.run(module.getOperation()))) {
     throw BackendError("failed to lower module to LLVM");
   }
+}
 
-  mlir::registerBuiltinDialectTranslation(context);
-  mlir::registerLLVMDialectTranslation(context);
+// NOTE(jwh): Lowering passes may mutate the caller's IR.
+//            Clone into an OwningOpRef if this becomes a concern.
+std::unique_ptr<CompiledFunction> compileMlir(mlir::ModuleOp module,
+                                              const std::string &entrypoint) {
+  configureContext(module);
 
-  auto maybeEngine = mlir::ExecutionEngine::create(module->getOperation());
-  if (!maybeEngine) {
-    throw BackendError(llvm::toString(maybeEngine.takeError()));
+  if (mlir::failed(mlir::verify(module.getOperation()))) {
+    throw BackendError("failed to verify MLIR module");
   }
-  return std::make_unique<CompiledFunction>(std::move(*maybeEngine),
-                                            entryPoint);
+
+  // Lowering passes.
+  lowerUnitsToArith(module);
+  prepareEntrypoint(module, entrypoint);
+  lowerToLLVM(module);
+
+  auto engine = mlir::ExecutionEngine::create(module.getOperation());
+  if (!engine) {
+    throw BackendError(llvm::toString(engine.takeError()));
+  }
+
+  return std::make_unique<CompiledFunction>(std::move(*engine), entrypoint);
 }
 
 } // namespace units::backend

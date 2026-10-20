@@ -3,13 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from numbers import Number
-from typing import TypeVar, dataclass_transform
+from typing import dataclass_transform
 
 from units.annotations import QuantityTypeInfo
 from units.signatures import FunctionSignature
 from units.span import SourceSpan
-
-T = TypeVar("T")
 
 
 @dataclass_transform(frozen_default=True, kw_only_default=True)

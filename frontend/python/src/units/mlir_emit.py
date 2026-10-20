@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from units.annotations import QuantityTypeInfo, Unit
+from mlir import ir
+from mlir.dialects import func
+
+from units import _units_backend
+from units.annotations import QuantityTypeInfo
 from units.diagnostics import Diagnostic, UnitsCompileError
+from units.dialects import units as units_ops
 from units.ir import Assign, Binary, Expr, Function, Name, Node, Operator, Return, Stmt
 from units.span import SourceSpan
 
@@ -18,39 +22,29 @@ class MlirValue:
         return self.name
 
 
-type MlirSymbolTableType = dict[str, MlirValue]
+type MlirSymbolTableType = dict[str, ir.Value]
 type LineMapType = dict[int, SourceSpan]
 
 
-@dataclass(frozen=True, slots=True)
-class GeneratedModule:
-    text: str
-    line_map: Mapping[int, SourceSpan]
-
-
-def emit_mlir(node: Node) -> GeneratedModule:
+def emit_mlir(node: Node) -> ir.Module:
     """Emit Units MLIR dialect."""
-    emitter = MlirEmitter()
-    return emitter.emit_module(node)
+    with ir.Context() as ctx, ir.Location.unknown():
+        _units_backend.register_dialect(ctx)
+
+        module = ir.Module.create()
+        with ir.InsertionPoint(module.body):
+            try:
+                MlirEmitter().emit_node(node)
+            except ir.MLIRError as e:  # ty: ignore[unresolved-attribute] MLIR Python bindings dynamically add this type
+                raise UnitsCompileError(
+                    Diagnostic.emit("Failed to emit MLIR", span=node.span)
+                ) from e
+
+    return module
 
 
 @dataclass(slots=True)
 class MlirEmitter:
-    _next_ssa_id: int = 0
-    _lines: list[str] = field(default_factory=list)
-    _line_map: LineMapType = field(default_factory=dict)
-    _values: dict[Expr, str] = field(default_factory=dict)
-
-    def emit_module(self, node: Node) -> GeneratedModule:
-        self._append_line("module {")
-        self.emit_node(node)
-        self._append_line("}")
-
-        return GeneratedModule(
-            text="\n".join(self._lines) + "\n",
-            line_map=dict(self._line_map),
-        )
-
     def emit_node(self, node: Node) -> None:
         match node:
             case Function():
@@ -61,114 +55,96 @@ class MlirEmitter:
 
     def emit_function(self, function: Function) -> None:
         sig = function.signature
-        params = ", ".join(
-            f"%{name}: {emit_quantity_type(type_info)}"
-            for name, type_info in sig.parameters
-        )
+        param_types = [lower_quantity_type(info) for _, info in sig.parameters]
+        result_type = lower_quantity_type(sig.result)
 
-        self._append_line(
-            f"  func.func @{sig.name}({params}) -> {emit_quantity_type(sig.result)} {{"
+        operation = func.FuncOp(
+            sig.name,
+            (param_types, [result_type]),
+            loc=lower_location(function.span),
         )
+        block = operation.add_entry_block()
 
         symbols = {
-            name: MlirValue(name=f"%{name}", type=type_info)
-            for name, type_info in sig.parameters
+            name: value
+            for (name, _), value in zip(sig.parameters, block.arguments, strict=True)
         }
-        for stmt in function.body:
-            if value := self.emit_stmt(
-                stmt,
-                symbols=symbols,
-                return_type=function.signature.result,
-            ):
-                self._append_line(f"    {value}")
-        self._append_line("  }")
+
+        with ir.InsertionPoint(block):
+            for stmt in function.body:
+                self.emit_stmt(stmt, symbols=symbols)
 
     def emit_stmt(
         self,
         stmt: Stmt,
         *,
         symbols: MlirSymbolTableType,
-        return_type: QuantityTypeInfo,
-    ) -> str | None:
+    ) -> None:
         match stmt:
             case Assign(name=name, expr=expr, declared_type=None):
                 symbols[name] = self.emit_expr(expr, symbols)
-                return None
 
             case Return(expr=expr):
-                value_mlir = self.emit_expr(expr, symbols)
-                return f"return {value_mlir}: {emit_quantity_type(return_type)}"
+                value = self.emit_expr(expr, symbols)
+                func.ReturnOp(
+                    [value],
+                    loc=lower_location(stmt.span),
+                )
 
             case _:
                 msg = f"unsupported statement: {stmt}"
                 raise UnitsCompileError(Diagnostic.emit(msg, stmt.span))
 
-    def emit_expr(self, expr: Expr, symbols: MlirSymbolTableType) -> MlirValue:
+    def emit_expr(self, expr: Expr, symbols: MlirSymbolTableType) -> ir.Value:
         match expr:
             case Name(name=name):
                 return symbols[name]
 
             case Binary(op=op, lhs=lhs, rhs=rhs):
-                mlir_op = emit_operator(op)
                 lhs_val = self.emit_expr(lhs, symbols)
                 rhs_val = self.emit_expr(rhs, symbols)
-
-                lhs_type = require_type(lhs_val)
-                rhs_type = require_type(rhs_val)
-
-                result_name = self._get_next_ssa_id()
-
-                self._append_line(f"    {result_name} = {mlir_op} {lhs_val}, {rhs_val}")
-                self._append_line(
-                    f"      : {emit_quantity_type(lhs_type)}, {emit_quantity_type(rhs_type)}"
-                )
-
-                return MlirValue(name=result_name)
+                match op:
+                    case Operator.add:
+                        operation = units_ops.AddOp(
+                            lhs_val,
+                            rhs_val,
+                            loc=lower_location(expr.span),
+                        )
+                    case Operator.mul:
+                        operation = units_ops.MulOp(
+                            lhs_val,
+                            rhs_val,
+                            loc=lower_location(expr.span),
+                        )
+                    case _:
+                        raise UnitsCompileError(
+                            Diagnostic.emit(f"unsupported operator {op!r}", expr.span)
+                        )
+                return operation.result
 
             case _:
                 msg = f"unsupported IR expression: {expr!r}"
                 raise UnitsCompileError(Diagnostic.emit(msg))
 
-    def _get_next_ssa_id(self) -> str:
-        value = f"%{self._next_ssa_id}"
-        self._next_ssa_id += 1
-        return value
 
-    def _append_line(self, line: str, span: SourceSpan | None = None) -> None:
-        self._lines.append(line)
-        if span is not None:
-            self._line_map[len(self._lines)] = span
+def lower_quantity_type(info: QuantityTypeInfo) -> ir.Type:
+    if info.element != "f64":
+        raise UnitsCompileError(
+            Diagnostic.emit(f"unsupported element type: {info.element!r}")
+        )
 
-
-def emit_quantity_type(type_info: QuantityTypeInfo) -> str:
-    return f"!units.quantity<{emit_element_type(type_info.element)}, {emit_unit_attr(type_info.unit)}>"
+    return _units_backend.quantity_type(
+        ir.F64Type.get(),
+        info.unit.expression,
+    )
 
 
-def emit_element_type(element: str) -> str:
-    if element == "f64":
-        return "f64"
+def lower_location(span: SourceSpan | None) -> ir.Location:
+    if span is None:
+        return ir.Location.unknown()
 
-    msg = f"unsupported element type: {element!r}"
-    raise UnitsCompileError(Diagnostic.emit(msg))
-
-
-def emit_unit_attr(unit: Unit) -> str:
-    return f"""#units.unit<"{unit.expression}">"""
-
-
-def emit_operator(op: Operator) -> str:
-    match op:
-        case Operator.add:
-            return "units.add"
-        case Operator.mul:
-            return "units.mul"
-        case _:
-            msg = f"unsupported operator `{op!r}`"
-            raise UnitsCompileError(Diagnostic.emit(msg))
-
-
-def require_type(value: MlirValue) -> QuantityTypeInfo:
-    if value.type is None:
-        msg = f"cannot emit operand `{value.name}` without a known type"
-        raise UnitsCompileError(Diagnostic.emit(msg))
-    return value.type
+    return ir.Location.file(
+        span.filename,
+        span.line,
+        span.column + 1,
+    )

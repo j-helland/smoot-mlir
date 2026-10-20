@@ -29,7 +29,7 @@ Checks: >
   -readability-magic-numbers
 WarningsAsErrors: ''
 HeaderFilterRegex: '.*/(lib|tools|bindings|unittests)/.*'
-ExcludeHeaderFilterRegex: '.*/build[^/]*/.*'
+ExcludeHeaderFilterRegex: '.*/(build[^/]*|[.]venv|site-packages)/.*'
 FormatStyle: file
 CheckOptions:
   - key: readability-implicit-bool-conversion.AllowIntegerConditions

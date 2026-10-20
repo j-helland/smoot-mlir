@@ -3,45 +3,41 @@ from __future__ import annotations
 import functools
 import shutil
 import subprocess
+from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
-from types import FunctionType
-from typing import TYPE_CHECKING, Annotated, TypeVar
+from typing import Annotated
 
+from mlir import ir
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich import print
 
 from units import _units_backend
 from units.diagnostics import Diagnostic, UnitsCompileError
-from units.mlir_emit import GeneratedModule
-
-if TYPE_CHECKING:
-    F = TypeVar("F", bound=FunctionType)
+from units.span import SourceSpan
 
 
+@dataclass(slots=True)
 class NativeBackend:
-    __slots__ = ()
-
     @classmethod
     @functools.lru_cache(maxsize=1)
     def default(cls) -> NativeBackend:
         return cls()
 
-    def verify_mlir(self, input: GeneratedModule | str) -> None:
-        text = input.text if isinstance(input, GeneratedModule) else input
+    def verify_mlir(self, module: ir.Module) -> None:
         try:
-            _units_backend.verify_mlir(text)
-        except _units_backend.BackendError as e:
+            module.operation.verify()
+        except ir.MLIRError as e:  # ty: ignore[unresolved-attribute] MLIR dynamically adds the error type
             raise UnitsCompileError(Diagnostic.backend(message=str(e))) from e
 
     def compile_mlir(
         self,
-        input: GeneratedModule | str,
+        module: ir.Module,
         entrypoint: str,
     ) -> _units_backend.CompiledFunction:
-        text = input.text if isinstance(input, GeneratedModule) else input
         try:
-            return _units_backend.compile_mlir(text, entrypoint)
+            return _units_backend.compile_mlir(module, entrypoint)
         except _units_backend.BackendError as e:
             raise UnitsCompileError(Diagnostic.backend(message=str(e))) from e
 
@@ -55,6 +51,12 @@ def _parse_command_exists(value: str | Path) -> str:
 
 CommandExistsField = Annotated[str, BeforeValidator(_parse_command_exists)]
 """Pydantic field type that validates that a file exists."""
+
+
+@dataclass(frozen=True, slots=True)
+class GeneratedModule:
+    text: str
+    line_map: Mapping[int, SourceSpan]
 
 
 class UnitsOpt(BaseSettings):
