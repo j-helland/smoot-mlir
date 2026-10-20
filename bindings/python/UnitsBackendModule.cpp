@@ -7,6 +7,7 @@
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <mlir-c/IR.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/DialectRegistry.h>
@@ -15,6 +16,7 @@
 #include <mlir/IR/Verifier.h>
 #include <mlir/Parser/Parser.h>
 #include <mlir/Support/LLVM.h>
+#include <mlir/Bindings/Python/NanobindAdaptors.h>
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
@@ -24,6 +26,7 @@
 #include "BackendError.h"
 #include "CompiledFunction.h"
 #include "Compiler.h"
+#include "bindings/c/UnitsDialect.h"
 
 namespace nb = nanobind;
 
@@ -91,4 +94,12 @@ NB_MODULE(_units_backend, module) {
              "Parse and verify Units MLIR in-process.");
   module.def("compile_mlir", &units::backend::compileMlir, nb::arg("text"),
              nb::arg("entrypoint"), "Compile a placeholder native function.");
+  module.def(
+      "register_dialect",
+      [](MlirContext context) {
+        MlirDialectHandle handle = mlirGetDialectHandle__units__();
+        mlirDialectHandleRegisterDialect(handle, context);
+        mlirDialectHandleLoadDialect(handle, context);
+      },
+      nb::arg("context"));
 }

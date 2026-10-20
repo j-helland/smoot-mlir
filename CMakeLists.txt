@@ -49,7 +49,7 @@ endif()
 message(STATUS "Using mlir-tblgen ${MLIR_TABLEGEN_EXE_ABSOLUTE}")
 set(MLIR_TABLEGEN_EXE "${MLIR_TABLEGEN_EXE_ABSOLUTE}")
 set(MLIR_TABLEGEN_TARGET "${MLIR_TABLEGEN_EXE}")
-set(MLIR_LINK_MLIR_DYLIB ON)
+set(MLIR_LINK_MLIR_DYLIB OFF)
 message(STATUS "Using MLIR TableGen executable: ${MLIR_TABLEGEN_EXE}")
 
 set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
@@ -72,7 +72,7 @@ include_directories(${PROJECT_BINARY_DIR}/lib/Dialect)
 add_subdirectory(units-rs)
 add_subdirectory(lib)
 add_subdirectory(tools)
-add_subdirectory(bindings/python)
+add_subdirectory(bindings)
 
 # tests
 add_subdirectory(mlir-tests)

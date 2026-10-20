@@ -108,10 +108,13 @@
 
             cmakeFlags = (old.cmakeFlags or [ ]) ++ [
               "-DMLIR_ENABLE_BINDINGS_PYTHON=ON"
+              "-DBUILD_SHARED_LIBS=ON"
               "-DMLIR_LINK_MLIR_DYLIB=OFF"
               "-DPython_EXECUTABLE=${mlirPythonBuildEnv}/bin/python3"
               "-DPython3_EXECUTABLE=${mlirPythonBuildEnv}/bin/python3"
               "-DMLIR_BINDINGS_PYTHON_INSTALL_PREFIX=python_packages/mlir_core/mlir"
+            ] ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+              "-DCMAKE_BUILD_RPATH=@loader_path/../lib"
             ];
 
             postInstall = (old.postInstall or "") + lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
@@ -253,7 +256,7 @@
 
               mkdir -p "$out/bin" "$out/python/units"
               cp build/tools/units-opt "$out/bin/units-opt"
-              cp frontend/python/src/units/_units_backend*.so "$out/python/units/"
+              cp frontend/python/src/units/_units_mlir*.so "$out/python/units/"
 
               runHook postInstall
             '';
@@ -290,7 +293,7 @@
                 export PYTHONPATH="$PWD/frontend/python/src:${mlirPythonPath}"
 
                 mkdir -p "$HOME" frontend/python/src/units
-                cp ${backendPackage}/python/units/_units_backend*.so frontend/python/src/units/
+                cp ${backendPackage}/python/units/_units_mlir*.so frontend/python/src/units/
 
                 mise trust --all --yes
                 mise run --skip-tools --skip-deps ${task}

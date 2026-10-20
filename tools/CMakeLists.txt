@@ -1,6 +1,9 @@
 set(LIBS
   UnitsToStandard
-  MLIR
+  MLIRMlirOptMain
+  MLIRRegisterAllDialects
+  MLIRRegisterAllPasses
+  MLIRTransforms
 )
 
 add_llvm_executable(units-opt units-opt.cpp)
