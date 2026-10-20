@@ -142,7 +142,7 @@
 
           exportPythonToolEnv = ''
             export PYTHON_EXE="${devtoolsPythonEnv}/bin/python3"
-            export PYBIND11_DIR="$("$PYTHON_EXE" -m pybind11 --cmakedir)"
+            export NANOBIND_DIR="$("$PYTHON_EXE" -m nanobind --cmake_dir)"
             export LIT_EXE="${devtoolsPythonEnv}/bin/lit"
           '';
 

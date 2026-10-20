@@ -1,7 +1,7 @@
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
+find_package(nanobind CONFIG REQUIRED)
 
-pybind11_add_module(_units_backend
+nanobind_add_module(_units_backend
   UnitsBackendModule.cpp
   CompiledFunction.cpp
   Compiler.cpp

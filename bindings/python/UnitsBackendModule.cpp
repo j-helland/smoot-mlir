@@ -16,15 +16,16 @@
 #include <mlir/Parser/Parser.h>
 #include <mlir/Support/LLVM.h>
 
-#include <pybind11/detail/common.h>
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/unique_ptr.h>
 
 #include "Units/UnitsDialect.h"
 #include "BackendError.h"
 #include "CompiledFunction.h"
 #include "Compiler.h"
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace units::backend {
 
@@ -73,9 +74,9 @@ void verifyMlir(std::string const &text) {
 
 } // namespace units::backend
 
-PYBIND11_MODULE(_units_backend, module) {
-  py::register_exception<units::backend::BackendError>(module, "BackendError");
-  py::class_<units::backend::CompiledFunction>(module, "CompiledFunction")
+NB_MODULE(_units_backend, module) {
+  nb::exception<units::backend::BackendError>(module, "BackendError");
+  nb::class_<units::backend::CompiledFunction>(module, "CompiledFunction")
       .def("__call__", &units::backend::CompiledFunction::invoke);
 
   if (llvm::InitializeNativeTarget() ||
@@ -86,8 +87,8 @@ PYBIND11_MODULE(_units_backend, module) {
 
   module.doc() = "Native MLIR backend bindings for the units frontend.";
 
-  module.def("verify_mlir", &units::backend::verifyMlir, py::arg("text"),
+  module.def("verify_mlir", &units::backend::verifyMlir, nb::arg("text"),
              "Parse and verify Units MLIR in-process.");
-  module.def("compile_mlir", &units::backend::compileMlir, py::arg("text"),
-             py::arg("entrypoint"), "Compile a placeholder native function.");
+  module.def("compile_mlir", &units::backend::compileMlir, nb::arg("text"),
+             nb::arg("entrypoint"), "Compile a placeholder native function.");
 }
