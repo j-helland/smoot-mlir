@@ -6,6 +6,7 @@
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Func/Transforms/FuncConversions.h>
 #include <mlir/Dialect/SCF/IR/SCF.h>
+#include <mlir/Dialect/SCF/Transforms/Patterns.h>
 #include <mlir/IR/BuiltinAttributes.h>
 #include <mlir/IR/BuiltinDialect.h>
 #include <mlir/IR/BuiltinOps.h>
@@ -114,6 +115,10 @@ void UnitsToStandardPass::runOnOperation() {
       [&](mlir::func::ReturnOp op) {
         return converter.isLegal(op.getOperation());
       });
+
+  // Support for control flow logic like for loops and if statements.
+  mlir::scf::populateSCFStructuralTypeConversionsAndLegality(converter,
+                                                             patterns, target);
 
   if (mlir::failed(mlir::applyFullConversion(getOperation(), target,
                                              std::move(patterns)))) {
