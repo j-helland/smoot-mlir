@@ -28,6 +28,17 @@ def test_compile_local_alias():
     assert copied(2.0) == pytest.approx(2.0)
 
 
+def test_compile_multi_argument():
+    @compile
+    def advance(x: Meter, v: MetersPerSecond, dt: Second) -> Meter:
+        dx = v * dt
+        pos = x + dx
+        return pos
+
+    assert advance(1.0, 2.0, 3.0) == pytest.approx(7.0)
+    assert advance(10.0, 4.0, 0.5) == pytest.approx(12.0)
+
+
 def test_compile_invalid():
     def double_invalid(x: Meter) -> Meter:
         return x * x

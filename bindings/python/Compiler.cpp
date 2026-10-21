@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <memory>
 
 #include <llvm/ADT/StringExtras.h>
@@ -46,21 +47,27 @@ static void lowerUnitsToArith(mlir::ModuleOp module) {
   }
 }
 
-static void prepareEntrypoint(mlir::ModuleOp module,
-                              const std::string &entrypoint) {
+static std::size_t prepareEntrypoint(mlir::ModuleOp module,
+                                     const std::string &entrypoint) {
   auto entry = module.lookupSymbol<mlir::func::FuncOp>(entrypoint);
   if (!entry || entry.isExternal()) {
     throw BackendError("entrypoint must name a function definition");
   }
 
   auto type = entry.getFunctionType();
-  if (type.getNumInputs() != 1 || type.getNumResults() != 1 ||
-      !type.getInput(0).isF64() || !type.getResult(0).isF64()) {
-    throw BackendError("entrypoint must have function signature (f64) -> f64");
+  if (type.getNumResults() != 1 || !type.getResult(0).isF64()) {
+    throw BackendError("entrypoint must return exactly one f64");
+  }
+  for (auto inputType : type.getInputs()) {
+    if (!inputType.isF64()) {
+      throw BackendError("entrypoint arguments must all be f64");
+    }
   }
 
-  entry->setAttr("llvm.emit_c_interface",
+  entry->setAttr(mlir::LLVM::LLVMDialect::getEmitCWrapperAttrName(),
                  mlir::UnitAttr::get(module->getContext()));
+
+  return type.getNumInputs();
 }
 
 static void lowerToLLVM(mlir::ModuleOp module) {
@@ -85,7 +92,7 @@ std::unique_ptr<CompiledFunction> compileMlir(mlir::ModuleOp module,
 
   // Lowering passes.
   lowerUnitsToArith(module);
-  prepareEntrypoint(module, entrypoint);
+  auto numArgs = prepareEntrypoint(module, entrypoint);
   lowerToLLVM(module);
 
   auto engine = mlir::ExecutionEngine::create(module.getOperation());
@@ -93,7 +100,8 @@ std::unique_ptr<CompiledFunction> compileMlir(mlir::ModuleOp module,
     throw BackendError(llvm::toString(engine.takeError()));
   }
 
-  return std::make_unique<CompiledFunction>(std::move(*engine), entrypoint);
+  return std::make_unique<CompiledFunction>(std::move(*engine), entrypoint,
+                                            numArgs);
 }
 
 } // namespace units::backend
