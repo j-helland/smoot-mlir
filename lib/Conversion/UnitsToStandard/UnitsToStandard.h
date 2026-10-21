@@ -2,8 +2,6 @@
 
 #include <mlir/Pass/PassRegistry.h>
 
-#include <memory>
-
 namespace mlir {
 class Pass;
 

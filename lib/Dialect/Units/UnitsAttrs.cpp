@@ -6,8 +6,6 @@
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
 
-#include <cstdint>
-
 namespace units = mlir::units;
 
 mlir::Attribute units::UnitAttr::parse(mlir::AsmParser &parser,

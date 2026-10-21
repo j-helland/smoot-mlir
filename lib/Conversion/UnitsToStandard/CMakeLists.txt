@@ -24,5 +24,6 @@ mlir_target_link_libraries(UnitsToStandard PUBLIC
   MLIRFuncDialect
   MLIRFuncTransforms
   MLIRSCFDialect
+  MLIRSCFTransforms
   MLIRTransforms
 )
