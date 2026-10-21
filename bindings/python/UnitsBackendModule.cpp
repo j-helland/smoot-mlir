@@ -43,12 +43,28 @@ std::string getDiagnosticText(const std::string &diagnostics,
 
 } // namespace units::backend
 
+namespace {
+
+std::vector<double> prepareArgs(const nb::args &args) {
+  std::vector<double> result;
+  result.reserve(args.size());
+
+  for (nb::handle arg : args) {
+    result.push_back(nb::cast<double>(arg));
+  }
+  return result;
+}
+
+} // namespace
+
 NB_MODULE(_units_backend, module) {
   // Registers the Python exception type.
   // NOLINTNEXTLINE(bugprone-unused-raii,bugprone-throw-keyword-missing)
   nb::exception<units::backend::BackendError>(module, "BackendError");
   nb::class_<units::backend::CompiledFunction>(module, "CompiledFunction")
-      .def("__call__", &units::backend::CompiledFunction::invoke);
+      .def("__call__",
+           [](const units::backend::CompiledFunction &self,
+              const nb::args &args) { return self.invoke(prepareArgs(args)); });
 
   if (llvm::InitializeNativeTarget() ||
       llvm::InitializeNativeTargetAsmPrinter()) {

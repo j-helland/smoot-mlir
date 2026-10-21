@@ -27,11 +27,18 @@ target_link_libraries(_units_backend PRIVATE
   MLIRLLVMToLLVMIRTranslation
 )
 
+# Sanitizer builds must not replace the extension imported by the regular
+# Python environment: ASan cannot initialize when loaded through Python's dlopen.
+set(UNITS_PYTHON_LIBRARY_DIR "${PROJECT_SOURCE_DIR}/frontend/python/src/units")
+if(UNITS_SANITIZERS)
+  set(UNITS_PYTHON_LIBRARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+
 set_target_properties(_units_backend PROPERTIES
   CXX_VISIBILITY_PRESET default
   VISIBILITY_INLINES_HIDDEN OFF
   LIBRARY_OUTPUT_DIRECTORY
-    ${PROJECT_SOURCE_DIR}/frontend/python/src/units
+    "${UNITS_PYTHON_LIBRARY_DIR}"
 )
 
 # tablegen
