@@ -1,52 +1,93 @@
-from typing import Annotated
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Annotated, cast
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
-from units import Quantity, Unit, UnitsCompileError, compile
+from units import Unit, UnitsCompileError, compile
+from units.quantity import Quantity
 
 type Meter = Annotated[Quantity, Unit("meter")]
+type Centimeter = Annotated[Quantity, Unit("centimeter")]
 type Second = Annotated[Quantity, Unit("second")]
 type MetersPerSecond = Annotated[Quantity, Unit("meter / second")]
 
 
-def test_compile_happy_path():
-    @compile
-    def double(x: Meter) -> Meter:
-        return x + x
-
-    assert double(1.0) == pytest.approx(2.0)
-    assert double(5.5) == pytest.approx(11.0)
+@dataclass(frozen=True)
+class CompiledCase:
+    ref: Callable[..., float]
+    native: Callable[..., float]
+    inputs: st.SearchStrategy[tuple[float, ...]]
 
 
-def test_compile_local_alias():
-    @compile
-    def copied(x: Meter) -> Meter:
-        y = x
-        return y
-
-    assert copied(1.0) == pytest.approx(1.0)
-    assert copied(2.0) == pytest.approx(2.0)
+scalar = st.floats(allow_nan=False)
 
 
-def test_compile_multi_argument():
-    @compile
-    def advance(x: Meter, v: MetersPerSecond, dt: Second) -> Meter:
-        dx = v * dt
-        pos = x + dx
-        return pos
-
-    assert advance(1.0, 2.0, 3.0) == pytest.approx(7.0)
-    assert advance(10.0, 4.0, 0.5) == pytest.approx(12.0)
+def double(x: Meter) -> Meter:
+    return x + x
 
 
-def test_compile_for_range():
-    @compile
-    def repeat(x: Meter) -> Meter:
-        for _ in range(3):
-            x = x + x
-        return x
+def copied(x: Meter) -> Meter:
+    y = x
+    return y
 
-    assert repeat(2.0) == pytest.approx(16.0)
+
+def advance(x: Meter, v: MetersPerSecond, dt: Second) -> Meter:
+    dx = v * dt
+    pos = x + dx
+    return pos
+
+
+def repeat(x: Meter) -> Meter:
+    for _ in range(3):
+        x = x + x
+    return x
+
+
+@pytest.fixture(
+    scope="module",  # compile functions once
+    params=[
+        pytest.param(
+            (double, st.tuples(scalar)),
+            id=double.__name__,
+        ),
+        pytest.param(
+            (copied, st.tuples(scalar)),
+            id="local-alias",
+        ),
+        pytest.param(
+            (
+                advance,
+                st.tuples(scalar, scalar, scalar),
+            ),
+            id="multi-argument",
+        ),
+        pytest.param(
+            (repeat, st.tuples(scalar)),
+            id="for-range",
+        ),
+    ],
+)
+def compiled_case(request: pytest.FixtureRequest) -> CompiledCase:
+    source, inputs = request.param
+    return CompiledCase(
+        ref=cast(Callable[..., float], source),
+        native=compile(source),
+        inputs=inputs,
+    )
+
+
+@given(data=st.data())
+def test_compiled_matches_python(
+    compiled_case: CompiledCase,
+    data: st.DataObject,
+) -> None:
+    args = data.draw(compiled_case.inputs, label="arguments")
+    expected = compiled_case.ref(*args)
+    actual = compiled_case.native(*args)
+    assert actual == pytest.approx(expected, nan_ok=True)
 
 
 def test_compile_invalid():
