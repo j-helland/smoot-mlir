@@ -1,3 +1,4 @@
+import functools
 from types import FunctionType
 
 from units.ast_parser import transform_ast
@@ -5,6 +6,8 @@ from units.driver import NativeBackend
 from units.mlir_emit import emit_mlir
 
 
+# TODO(jwh): identify reasonable cache size or make caller configurable
+@functools.lru_cache(maxsize=32)
 def verify[F: FunctionType](fn: F) -> F:
     backend = NativeBackend.default()
     fn_ast = transform_ast(fn)

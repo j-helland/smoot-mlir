@@ -17,6 +17,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "deptry>=0.25.1",
+    "hypothesis",
     "pytest>=9.0.3",
     "syrupy>=5.1.0",
     "vulture>=2.16",
