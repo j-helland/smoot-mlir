@@ -10,12 +10,41 @@
   
   '''
 # ---
+# name: test_mlir_emitter[func_for_loop_range]
+  '''
+  module {
+    func.func @func_for_loop_range(%arg0: !units.quantity<f64, #units.unit<"meter">>) -> !units.quantity<f64, #units.unit<"meter">> {
+      %c0 = arith.constant 0 : index
+      %c3 = arith.constant 3 : index
+      %c1 = arith.constant 1 : index
+      %0 = scf.for %arg1 = %c0 to %c3 step %c1 iter_args(%arg2 = %arg0) -> (!units.quantity<f64, #units.unit<"meter">>) {
+        %1 = units.add %arg2, %arg2 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
+        scf.yield %1 : !units.quantity<f64, #units.unit<"meter">>
+      }
+      return %0 : !units.quantity<f64, #units.unit<"meter">>
+    }
+  }
+  
+  '''
+# ---
 # name: test_mlir_emitter[func_mul]
   '''
   module {
     func.func @func_mul(%arg0: !units.quantity<f64, #units.unit<"meter / second">>, %arg1: !units.quantity<f64, #units.unit<"second">>) -> !units.quantity<f64, #units.unit<"meter">> {
       %0 = units.mul %arg0, %arg1 : !units.quantity<f64, #units.unit<"meter / second">>, !units.quantity<f64, #units.unit<"second">>
       return %0 : !units.quantity<f64, #units.unit<"meter">>
+    }
+  }
+  
+  '''
+# ---
+# name: test_mlir_emitter[func_multi_argument]
+  '''
+  module {
+    func.func @func_multi_argument(%arg0: !units.quantity<f64, #units.unit<"meter">>, %arg1: !units.quantity<f64, #units.unit<"meter / second">>, %arg2: !units.quantity<f64, #units.unit<"second">>) -> !units.quantity<f64, #units.unit<"meter">> {
+      %0 = units.mul %arg1, %arg2 : !units.quantity<f64, #units.unit<"meter / second">>, !units.quantity<f64, #units.unit<"second">>
+      %1 = units.add %arg0, %0 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
+      return %1 : !units.quantity<f64, #units.unit<"meter">>
     }
   }
   

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from numbers import Number
 from typing import dataclass_transform
 
 from units.annotations import QuantityTypeInfo
@@ -64,7 +63,7 @@ class Function(Stmt):
 
 @ir_model
 class Constant(Expr):
-    value: Number
+    value: int | float
 
 
 @ir_model
@@ -72,3 +71,17 @@ class Assign(Stmt):
     name: str
     expr: Expr
     declared_type: QuantityTypeInfo | None = None
+
+
+@ir_model
+class For(Stmt):
+    target: str
+    iterable: Expr
+    body: tuple[Stmt, ...]
+
+
+@ir_model
+class Range(Expr):
+    start: Expr
+    stop: Expr
+    step: Expr
