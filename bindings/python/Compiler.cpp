@@ -4,8 +4,10 @@
 #include <llvm/ADT/StringExtras.h>
 
 #include <mlir/Conversion/ArithToLLVM/ArithToLLVM.h>
+#include <mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h>
 #include <mlir/Conversion/FuncToLLVM/ConvertFuncToLLVMPass.h>
 #include <mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h>
+#include <mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/LLVMIR/LLVMDialect.h>
@@ -72,9 +74,13 @@ static std::size_t prepareEntrypoint(mlir::ModuleOp module,
 
 static void lowerToLLVM(mlir::ModuleOp module) {
   mlir::PassManager llvmPasses(module->getContext());
+
+  llvmPasses.addPass(mlir::createSCFToControlFlowPass());
   llvmPasses.addPass(mlir::createArithToLLVMConversionPass());
+  llvmPasses.addPass(mlir::createConvertControlFlowToLLVMPass());
   llvmPasses.addPass(mlir::createConvertFuncToLLVMPass());
   llvmPasses.addPass(mlir::createReconcileUnrealizedCastsPass());
+
   if (mlir::failed(llvmPasses.run(module.getOperation()))) {
     throw BackendError("failed to lower module to LLVM");
   }

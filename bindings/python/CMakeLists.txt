@@ -22,6 +22,8 @@ target_link_libraries(_units_backend PRIVATE
   MLIRExecutionEngine
   MLIRArithToLLVM
   MLIRFuncToLLVM
+  MLIRSCFToControlFlow
+  MLIRControlFlowToLLVM
   MLIRReconcileUnrealizedCasts
   MLIRBuiltinToLLVMIRTranslation
   MLIRLLVMToLLVMIRTranslation

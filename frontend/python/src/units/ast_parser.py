@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import ast
+import dataclasses
 import inspect
 import textwrap
 from collections.abc import Callable
 from dataclasses import dataclass
-from numbers import Number
 from types import FunctionType
 from typing import Final
 
@@ -16,10 +16,12 @@ from units.ir import (
     Binary,
     Constant,
     Expr,
+    For,
     Function,
     Name,
     Node,
     Operator,
+    Range,
     Return,
     Stmt,
 )
@@ -111,6 +113,7 @@ class _AstTransformCtx:
     symbol_table: SymbolTableType
     span: SourceSpan.Ctx
     globals: dict[str, object]
+    is_in_loop: bool = False
 
 
 def _transform_body(
@@ -164,14 +167,52 @@ def _transform_stmt(
                 msg = "return statement must return a value"
                 raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
+            if ctx.is_in_loop:
+                msg = "return inside a loop is not supported yet"
+                raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
             return Return(
                 expr=_transform_expr(value, ctx),
                 span=SourceSpan.from_ast(node=node, ctx=ctx.span),
             )
 
+        case ast.For() as loop:
+            return _transform_for_loop(loop, node, ctx, span)
+
         case _:
             msg = f"unsupported statement: {ast.dump(node)}"
             raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
+
+def _transform_for_loop(
+    loop: ast.For,
+    node: ast.stmt,
+    ctx: _AstTransformCtx,
+    span: SourceSpan,
+) -> For:
+    if loop.orelse:
+        msg = "for loop else statements are unsupported"
+        raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
+    if not isinstance(loop.target, ast.Name) or loop.target.id != "_":
+        msg = "only an ignored loop target '_' is supported"
+        raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
+    iterable = _transform_expr(loop.iter, ctx)
+    loop_ctx = dataclasses.replace(
+        ctx,
+        # copy to avoid making in-loop symbols available out of loop context
+        symbol_table=ctx.symbol_table.copy(),
+        is_in_loop=True,
+    )
+    statements = (_transform_stmt(stmt, loop_ctx) for stmt in loop.body)
+
+    return For(
+        target=loop.target.id,
+        iterable=iterable,
+        body=tuple(statements),
+        span=span,
+    )
 
 
 def _transform_expr(
@@ -198,7 +239,7 @@ def _transform_expr(
             return Name(name=name, span=span)
 
         case ast.Constant(value):
-            if isinstance(value, bool) or not isinstance(value, Number):
+            if isinstance(value, bool) or not isinstance(value, int | float):
                 msg = f"unsupported constant type `{type(value)}` with value: {value!r}"
                 raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
@@ -227,8 +268,34 @@ def _transform_expr(
                 span=span,
             )
 
+        case ast.Call(func=ast.Name(id="range")) as call:
+            return _transform_range(call, ctx)
+
         case _:
             msg = f"unsupported expression: {ast.dump(node)}"
+            raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
+
+def _transform_range(
+    call: ast.Call,
+    ctx: _AstTransformCtx,
+) -> Range:
+    span = SourceSpan.from_ast(call, ctx.span)
+    match call:
+        case ast.Call(
+            args=[ast.Constant(value=stop) as bound],
+            keywords=[],
+        ) if type(stop) is int and stop >= 0:
+            return Range(
+                start=Constant(value=0, span=span),
+                stop=_transform_expr(bound, ctx),
+                step=Constant(value=1, span=span),
+                span=span,
+            )
+
+        # TODO(jwh): support more than just `for _ in range(N)`
+        case _:
+            msg = "expected range(N) with nonnegative integer literal"
             raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
 

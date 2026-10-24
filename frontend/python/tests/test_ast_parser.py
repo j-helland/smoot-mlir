@@ -5,16 +5,25 @@ from syrupy.assertion import SnapshotAssertion
 
 from units import Quantity, Unit, UnitsCompileError
 from units.ast_parser import transform_ast
-from units.ir import Assign, Binary, Constant, Function, Name, Operator, Return
+from units.ir import (
+    Assign,
+    Binary,
+    Constant,
+    For,
+    Function,
+    Name,
+    Operator,
+    Range,
+    Return,
+)
 
-type Meters = Annotated[Quantity[float], Unit("meter")]
+type Meters = Annotated[Quantity, Unit("meter")]
+type Second = Annotated[Quantity, Unit("second")]
+type MetersPerSecond = Annotated[Quantity, Unit("meter / second")]
 
 
 def test_transform_return_mul():
-    def distance(
-        velocity: Annotated[Quantity, Unit("meter / second")],
-        dt: Annotated[Quantity, Unit("second")],
-    ) -> Annotated[Quantity, Unit("meter")]:
+    def distance(velocity: MetersPerSecond, dt: Second) -> Meters:
         return velocity * dt
 
     fn_ast = transform_ast(distance)
@@ -34,7 +43,7 @@ def test_transform_return_mul():
 
 
 def test_transform_assignment():
-    def f(x: Annotated[Quantity, Unit("meter")]) -> Annotated[Quantity, Unit("meter")]:
+    def f(x: Meters) -> Meters:
         # regular assigment
         y = x
         return y
@@ -81,7 +90,7 @@ def test_transform_annotated_assignment():
 
 
 def test_transform_invalid(diagnostic_snapshot: SnapshotAssertion):
-    def f() -> Annotated[Quantity, Unit("meter")]:
+    def f() -> Meters:
         return distance  # noqa: F821  # ty:ignore[unresolved-reference]
 
     _check_rendered_compile_error(f, diagnostic_snapshot)
@@ -99,7 +108,7 @@ def _check_rendered_compile_error(
 
 def test_transform_quantity_aliases():
     def f(source: Meters) -> Meters:
-        x: Annotated[Quantity[float], Unit("meter")] = source
+        x: Meters = source
         y: Meters = x
         return y
 
@@ -112,3 +121,30 @@ def test_transform_quantity_aliases():
     assert first.declared_type is not None
     assert first.declared_type.element == "f64"
     assert first.declared_type.unit == Unit("meter")
+
+
+def test_transform_for_range():
+    def repeat(x: Meters) -> Meters:
+        for _ in range(3):
+            x = x + x
+        return x
+
+    func = transform_ast(repeat)
+    assert isinstance(func, Function)
+
+    loop, result = func.body
+    assert isinstance(loop, For)
+    assert isinstance(loop.iterable, Range)
+
+    bounds = loop.iterable
+    assert isinstance(bounds.start, Constant)
+    assert bounds.start.value == 0
+    assert isinstance(bounds.stop, Constant)
+    assert bounds.stop.value == 3
+    assert isinstance(bounds.step, Constant)
+    assert bounds.step.value == 1
+
+    assert len(loop.body) == 1
+    assert isinstance(loop.body[0], Assign)
+    assert loop.body[0].name == "x"
+    assert isinstance(result, Return)

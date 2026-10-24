@@ -39,6 +39,16 @@ def test_compile_multi_argument():
     assert advance(10.0, 4.0, 0.5) == pytest.approx(12.0)
 
 
+def test_compile_for_range():
+    @compile
+    def repeat(x: Meter) -> Meter:
+        for _ in range(3):
+            x = x + x
+        return x
+
+    assert repeat(2.0) == pytest.approx(16.0)
+
+
 def test_compile_invalid():
     def double_invalid(x: Meter) -> Meter:
         return x * x

@@ -3,13 +3,26 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from mlir import ir
-from mlir.dialects import func
+from mlir.dialects import arith, func, scf
 
 from units import _units_backend
 from units.annotations import QuantityTypeInfo
 from units.diagnostics import Diagnostic, UnitsCompileError
 from units.dialects import units as units_ops
-from units.ir import Assign, Binary, Expr, Function, Name, Node, Operator, Return, Stmt
+from units.ir import (
+    Assign,
+    Binary,
+    Constant,
+    Expr,
+    For,
+    Function,
+    Name,
+    Node,
+    Operator,
+    Range,
+    Return,
+    Stmt,
+)
 from units.span import SourceSpan
 
 
@@ -84,6 +97,9 @@ class MlirEmitter:
             case Assign(name=name, expr=expr, declared_type=None):
                 symbols[name] = self.emit_expr(expr, symbols)
 
+            case For(iterable=Range() as bounds) as loop:
+                self.emit_range_loop(loop, bounds, symbols)
+
             case Return(expr=expr):
                 value = self.emit_expr(expr, symbols)
                 func.ReturnOp(
@@ -125,6 +141,71 @@ class MlirEmitter:
             case _:
                 msg = f"unsupported IR expression: {expr!r}"
                 raise UnitsCompileError(Diagnostic.emit(msg))
+
+    def emit_range_loop(
+        self,
+        loop: For,
+        bounds: Range,
+        symbols: MlirSymbolTableType,
+    ) -> None:
+        lower = emit_index_constant(bounds.start)
+        upper = emit_index_constant(bounds.stop)
+        step = emit_index_constant(bounds.step)
+
+        # Assignments that must be carried across loop iterations in a yield call.
+        # See <https://mlir.llvm.org/docs/Dialects/SCFDialect/#scffor-scfforop>
+        assigned = get_assigned_names(loop.body)
+        carried = [name for name in symbols if name in assigned]
+        initial_values = [symbols[name] for name in carried]
+
+        op = scf.ForOp(
+            lower,
+            upper,
+            step,
+            iter_args=initial_values,
+            loc=lower_location(loop.span),
+        )
+
+        # Don't mutate outer symbols with symbols scoped to the loop body.
+        # NOTE(jwh): This differs from normal Python semantics, which does not scope loop body symbols.
+        body_symbols = symbols.copy()
+        for name, arg in zip(carried, op.inner_iter_args, strict=True):
+            body_symbols[name] = arg
+
+        with ir.InsertionPoint(op.body):
+            for stmt in loop.body:
+                self.emit_stmt(stmt, symbols=body_symbols)
+
+            scf.YieldOp(
+                [body_symbols[name] for name in carried],
+                loc=lower_location(loop.span),
+            )
+
+        for name, result in zip(carried, op.results, strict=True):
+            symbols[name] = result
+
+
+def get_assigned_names(body: tuple[Stmt, ...]) -> set[str]:
+    names: set[str] = set()
+    for stmt in body:
+        match stmt:
+            case Assign(name=name):
+                names.add(name)
+            case For(body=nested_body):
+                names.update(get_assigned_names(nested_body))
+    return names
+
+
+def emit_index_constant(expr: Expr) -> ir.Value:
+    match expr:
+        case Constant(value=value) if type(value) is int:
+            return arith.ConstantOp.create_index(
+                value,
+                loc=lower_location(expr.span),
+            ).result
+        case _:
+            msg = "expected an integer loop bound"
+            raise UnitsCompileError(Diagnostic.emit(msg, expr.span))
 
 
 def lower_quantity_type(info: QuantityTypeInfo) -> ir.Type:
