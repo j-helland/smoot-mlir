@@ -90,6 +90,16 @@ def test_compiled_matches_python(
     assert actual == pytest.approx(expected, nan_ok=True)
 
 
+# TODO(jwh): Conversion has to be tested separately b/c we don't have a Python-side `to` call to compare against.
+def test_convert_units():
+    @compile
+    def meter_to_centimeter(x: Meter) -> Centimeter:
+        return x.to("cm")
+
+    assert meter_to_centimeter(1.0) == pytest.approx(100.0)
+    assert meter_to_centimeter(1e-2) == pytest.approx(1.0)
+
+
 def test_compile_invalid():
     def double_invalid(x: Meter) -> Meter:
         return x * x

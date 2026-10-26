@@ -88,6 +88,34 @@ def const(result, value, *, loc=None, ip=None) -> _ods_ir.OpResult:
   return ConstOp(result=result, value=value, loc=loc, ip=ip).result
 
 @_ods_cext.register_operation(_Dialect)
+class ConvertOp(_ods_ir.OpView):
+  OPERATION_NAME = "units.convert"
+
+  _ODS_REGIONS = (0, True)
+
+  def __init__(self, result, input, *, loc=None, ip=None):
+    operands = []
+    attributes = {}
+    regions = None
+    operands.append(input)
+    _ods_context = _ods_get_default_loc_context(loc)
+    results = []
+    results.append(result)
+    _ods_successors = None
+    super().__init__(self.OPERATION_NAME, self._ODS_REGIONS, self._ODS_OPERAND_SEGMENTS, self._ODS_RESULT_SEGMENTS, attributes=attributes, results=results, operands=operands, successors=_ods_successors, regions=regions, loc=loc, ip=ip)
+
+  @builtins.property
+  def input(self) -> _ods_ir.Value:
+    return self.operation.operands[0]
+
+  @builtins.property
+  def result(self) -> _ods_ir.OpResult:
+    return self.operation.results[0]
+
+def convert(result, input, *, loc=None, ip=None) -> _ods_ir.OpResult:
+  return ConvertOp(result=result, input=input, loc=loc, ip=ip).result
+
+@_ods_cext.register_operation(_Dialect)
 class MulOp(_ods_ir.OpView):
   OPERATION_NAME = "units.mul"
 

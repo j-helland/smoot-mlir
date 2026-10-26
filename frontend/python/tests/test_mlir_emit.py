@@ -8,6 +8,7 @@ from units.ast_parser import transform_ast
 from units.mlir_emit import emit_mlir
 
 type Meter = Annotated[Quantity, Unit("meter")]
+type Centimeter = Annotated[Quantity, Unit("centimeter")]
 type Second = Annotated[Quantity, Unit("second")]
 type MetersPerSecond = Annotated[Quantity, Unit("meter / second")]
 
@@ -32,6 +33,10 @@ def func_for_loop_range(x: Meter) -> Meter:
     return x
 
 
+def func_meter_to_centimeter(x: Meter) -> Centimeter:
+    return x.to("cm")
+
+
 @pytest.mark.parametrize(
     "func",
     (
@@ -39,6 +44,7 @@ def func_for_loop_range(x: Meter) -> Meter:
         func_add,
         func_multi_argument,
         func_for_loop_range,
+        func_meter_to_centimeter,
     ),
 )
 def test_mlir_emitter(func: FunctionType, snapshot: object):
