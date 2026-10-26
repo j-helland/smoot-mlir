@@ -7,18 +7,13 @@
 #include <mlir/IR/Builders.h>
 
 #include "lib/Dialect/Units/UnitsDialect.cpp.inc"
-#define GET_ATTRDEF_CLASSES
-#include "lib/Dialect/Units/UnitsAttrs.cpp.inc"
 #define GET_TYPEDEF_CLASSES
 #include "lib/Dialect/Units/UnitsTypes.cpp.inc"
 
 namespace mlir::units {
 
 void UnitsDialect::initialize() {
-  addAttributes<
-#define GET_ATTRDEF_LIST
-#include "lib/Dialect/Units/UnitsAttrs.cpp.inc"
-      >();
+  registerAttributes();
 
   addTypes<
 #define GET_TYPEDEF_LIST

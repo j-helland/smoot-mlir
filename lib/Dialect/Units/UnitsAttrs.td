@@ -10,11 +10,10 @@ def Units_UnitAttr : AttrDef<UnitsDialect, "Unit"> {
 
   let parameters = (ins StringRefParameter<"unit expresion">:$expression);
 
-  let builders = [AttrBuilder<(ins "llvm::StringRef":$expression), [{
-            return $_get($_ctxt, expression);
-        }]>];
+  let builders = [AttrBuilder<(ins "llvm::StringRef":$expression)>];
 
   let genAccessors = 1;
+  let genVerifyDecl = 1;
   let skipDefaultBuilders = 1;
   let hasCustomAssemblyFormat = 1;
 }
