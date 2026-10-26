@@ -1,2 +1,4 @@
 meter = [length] = m
 second = [time] = s
+
+centimeter = 0.01 * meter = cm

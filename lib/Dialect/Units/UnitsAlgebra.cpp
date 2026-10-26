@@ -9,6 +9,40 @@
 
 namespace mlir::units::algebra {
 
+namespace {
+
+llvm::Error takeError(char *error) {
+  const std::string message = error ? error : "unknown units-rs error";
+  units_free_string(error);
+  return llvm::createStringError(llvm::errc::invalid_argument, "%s",
+                                 message.c_str());
+}
+
+llvm::Expected<Unit> takeUnitResult(Units_UnitResult result) {
+  if (result.ok) {
+    return Unit(result.value);
+  }
+  return takeError(result.error);
+}
+
+llvm::Expected<std::string> takeStringResult(Units_StringResult result) {
+  if (result.ok) {
+    const std::string value = result.value ? result.value : "";
+    units_free_string(result.value);
+    return value;
+  }
+  return takeError(result.error);
+}
+
+llvm::Expected<double> takeF64Result(Units_F64Result result) {
+  if (result.ok) {
+    return result.value;
+  }
+  return takeError(result.error);
+}
+
+} // namespace
+
 Unit::Unit(Units_Unit *unit) : unit(unit) {}
 
 Unit::~Unit() {
@@ -29,34 +63,13 @@ Unit &Unit::operator=(Unit &&other) noexcept {
   return *this;
 }
 
-namespace {
-
-llvm::Expected<Unit> takeUnitResult(Units_UnitResult result) {
-  if (result.ok)
-    return Unit(result.value);
-
-  const std::string error =
-      result.error ? result.error : "unknown units-rs error";
-  units_free_string(result.error);
-  return llvm::createStringError(llvm::errc::invalid_argument, "%s",
-                                 error.c_str());
-}
-
-llvm::Expected<std::string> takeStringResult(Units_StringResult result) {
+llvm::Expected<bool> Unit::isCompatibleWith(const Unit &other) const {
+  auto result = units_is_compatible_with(this->get(), other.get());
   if (result.ok) {
-    const std::string value = result.value ? result.value : "";
-    units_free_string(result.value);
-    return value;
+    return result.value;
   }
-
-  const std::string error =
-      result.error ? result.error : "unknown units-rs error";
-  units_free_string(result.error);
-  return llvm::createStringError(llvm::errc::invalid_argument, "%s",
-                                 error.c_str());
+  return takeError(result.error);
 }
-
-} // namespace
 
 llvm::Expected<Unit> parse(llvm::StringRef expression) {
   const std::string storage = expression.str();
@@ -77,6 +90,11 @@ llvm::Expected<Unit> add(const Unit &lhs, const Unit &rhs) {
 llvm::Expected<std::string> format(const Unit &unit) {
   auto result = units_format_unit(unit.get());
   return takeStringResult(result);
+}
+
+llvm::Expected<double> conversionFactor(const Unit &from, const Unit &to) {
+  auto result = units_conversion_factor(from.get(), to.get());
+  return takeF64Result(result);
 }
 
 } // namespace mlir::units::algebra

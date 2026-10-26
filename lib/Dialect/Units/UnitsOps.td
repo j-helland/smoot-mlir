@@ -40,3 +40,16 @@ def Units_AddOp
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 }
+
+def Units_ConvertOp : Units_Op<"convert"> {
+  let summary = "convert a quantity to another unit";
+
+  let arguments = (ins Units_QuantityType:$input);
+  let results = (outs Units_QuantityType:$result);
+
+  let assemblyFormat = [{
+    $input attr-dict `:` type($input) `to` type($result)
+  }];
+
+  let hasVerifier = 1;
+}

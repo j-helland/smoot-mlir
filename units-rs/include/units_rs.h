@@ -21,6 +21,18 @@ typedef struct Units_StringResult {
   char *error;
 } Units_StringResult;
 
+typedef struct Units_BoolResult {
+  bool ok;
+  bool value;
+  char *error;
+} Units_BoolResult;
+
+typedef struct Units_F64Result {
+  bool ok;
+  double value;
+  char *error;
+} Units_F64Result;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -32,6 +44,12 @@ struct Units_StringResult units_format_unit(const struct Units_Unit *unit);
 struct Units_UnitResult units_mul(const struct Units_Unit *lhs, const struct Units_Unit *rhs);
 
 struct Units_UnitResult units_add(const struct Units_Unit *lhs, const struct Units_Unit *rhs);
+
+struct Units_BoolResult units_is_compatible_with(const struct Units_Unit *from,
+                                                 const struct Units_Unit *to);
+
+struct Units_F64Result units_conversion_factor(const struct Units_Unit *from,
+                                               const struct Units_Unit *to);
 
 /**
  * # Safety
