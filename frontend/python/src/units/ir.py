@@ -5,6 +5,7 @@ from enum import Enum, auto
 from typing import dataclass_transform
 
 from units.annotations import QuantityTypeInfo
+from units.quantity import Unit
 from units.signatures import FunctionSignature
 from units.span import SourceSpan
 
@@ -85,3 +86,9 @@ class Range(Expr):
     start: Expr
     stop: Expr
     step: Expr
+
+
+@ir_model
+class Convert(Expr):
+    value: Expr
+    target: Unit

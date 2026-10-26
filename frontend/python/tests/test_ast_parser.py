@@ -9,6 +9,7 @@ from units.ir import (
     Assign,
     Binary,
     Constant,
+    Convert,
     For,
     Function,
     Name,
@@ -18,6 +19,7 @@ from units.ir import (
 )
 
 type Meters = Annotated[Quantity, Unit("meter")]
+type Centimeters = Annotated[Quantity, Unit("centimeter")]
 type Second = Annotated[Quantity, Unit("second")]
 type MetersPerSecond = Annotated[Quantity, Unit("meter / second")]
 
@@ -148,3 +150,18 @@ def test_transform_for_range():
     assert isinstance(loop.body[0], Assign)
     assert loop.body[0].name == "x"
     assert isinstance(result, Return)
+
+
+def test_transform_convert():
+    def func_convert(x: Meters) -> Centimeters:
+        return x.to("centimeter")
+
+    func = transform_ast(func_convert)
+    assert isinstance(func, Function)
+
+    (ret,) = func.body
+    assert isinstance(ret, Return)
+
+    convert = ret.expr
+    assert isinstance(convert, Convert)
+    assert convert.target == Unit("centimeter")

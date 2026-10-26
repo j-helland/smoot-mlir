@@ -27,6 +27,17 @@
   
   '''
 # ---
+# name: test_mlir_emitter[func_meter_to_centimeter]
+  '''
+  module {
+    func.func @func_meter_to_centimeter(%arg0: !units.quantity<f64, #units.unit<"meter">>) -> !units.quantity<f64, #units.unit<"centimeter">> {
+      %0 = units.convert %arg0 : <f64, #units.unit<"meter">> to <f64, #units.unit<"centimeter">>
+      return %0 : !units.quantity<f64, #units.unit<"centimeter">>
+    }
+  }
+  
+  '''
+# ---
 # name: test_mlir_emitter[func_mul]
   '''
   module {

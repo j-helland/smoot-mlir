@@ -15,6 +15,7 @@ from units.ir import (
     Assign,
     Binary,
     Constant,
+    Convert,
     Expr,
     For,
     Function,
@@ -271,6 +272,18 @@ def _transform_expr(
         case ast.Call(func=ast.Name(id="range")) as call:
             return _transform_range(call, ctx)
 
+        # Unit conversion calls
+        case ast.Call(
+            func=ast.Attribute(value=receiver, attr="to"),
+            args=[target],
+            keywords=[],
+        ):
+            return Convert(
+                value=_transform_expr(receiver, ctx),
+                target=_parse_unit_expr(target, ctx),
+                span=span,
+            )
+
         case _:
             msg = f"unsupported expression: {ast.dump(node)}"
             raise UnitsCompileError(Diagnostic.frontend(msg, span))
@@ -316,7 +329,7 @@ def _transform_annotation(
         ):
             return QuantityTypeInfo(
                 element=_parse_element_annotation_ast(element_node, ctx),
-                unit=_parse_unit_annotation_ast(unit_node, ctx),
+                unit=_parse_unit_expr(unit_node, ctx),
             )
 
         case _:
@@ -342,12 +355,23 @@ def _parse_element_annotation_ast(
             raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
 
-def _parse_unit_annotation_ast(
+def _parse_unit_expr(
     node: ast.expr,
     ctx: _AstTransformCtx,
 ) -> Unit:
+    """Resolve a statically specified unit from Python syntax."""
     match node:
-        case ast.Name(id=name) if isinstance(ctx.globals.get(name), (Unit, str)):
+        # Allow referring to a unit by a global name
+        # ```python
+        # CM = Unit("cm")
+        #
+        # @compile
+        # def convert_length(x: Meter) -> Centimeter:
+        #     return x.to(CM)
+        # ```
+        case ast.Name(id=name) if (name not in ctx.symbol_table) and isinstance(
+            ctx.globals.get(name), (Unit, str)
+        ):
             unit = ctx.globals[name]
             return unit if isinstance(unit, Unit) else Unit(str(unit))
 

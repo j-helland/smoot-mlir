@@ -13,6 +13,7 @@ from units.ir import (
     Assign,
     Binary,
     Constant,
+    Convert,
     Expr,
     For,
     Function,
@@ -137,6 +138,19 @@ class MlirEmitter:
                             Diagnostic.emit(f"unsupported operator {op!r}", expr.span)
                         )
                 return operation.result
+
+            case Convert(value=value, target=target):
+                input = self.emit_expr(value, symbols)
+
+                # TODO(jwh): handle non-f64 types or push down into backend
+                result = lower_quantity_type(
+                    QuantityTypeInfo(element="f64", unit=target)
+                )
+
+                return units_ops.ConvertOp(
+                    result=result,
+                    input=input,
+                ).result
 
             case _:
                 msg = f"unsupported IR expression: {expr!r}"
