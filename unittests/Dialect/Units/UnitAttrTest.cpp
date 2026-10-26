@@ -28,4 +28,14 @@ TEST_F(UnitAttrTest, DistinguishesDifferentExpressions) {
   EXPECT_NE(meter, second);
 }
 
+TEST_F(UnitAttrTest, CanonicalizesAliases) {
+  auto abbreviated = mlir::units::UnitAttr::get(&context, "cm");
+  auto full = mlir::units::UnitAttr::get(&context, "centimeter");
+  auto meters = mlir::units::UnitAttr::get(&context, "meter");
+
+  EXPECT_EQ(abbreviated, full);
+  EXPECT_EQ(abbreviated.getExpression(), "centimeter");
+  EXPECT_NE(abbreviated, meters);
+}
+
 } // namespace

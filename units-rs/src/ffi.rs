@@ -93,7 +93,15 @@ pub extern "C" fn units_parse_unit(expression: *const c_char) -> Units_UnitResul
         let expression = read_c_str(expression, "expression")?;
         let registry = REGISTRY.as_ref().map_err(|e| e.clone())?;
         let (factor, unit) = Unit::parse(registry, expression).map_err(|e| e.to_string())?;
-        _ = factor; // TODO(jwh): handle factors
+
+        // NOTE(jwh): exact equality is okay for conversion factors, which are assigned 1.0 for noops by smoot-rs.
+        if factor != 1.0 {
+            return Err(
+                "unit expressions requiring an additional scale factor are not supported yet"
+                    .to_string(),
+            );
+        }
+
         Ok(Box::into_raw(Box::new(Units_Unit { unit })))
     })
 }

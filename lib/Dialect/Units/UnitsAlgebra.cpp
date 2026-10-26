@@ -77,6 +77,19 @@ llvm::Expected<Unit> parse(llvm::StringRef expression) {
   return takeUnitResult(result);
 }
 
+llvm::Expected<std::string> format(const Unit &unit) {
+  auto result = units_format_unit(unit.get());
+  return takeStringResult(result);
+}
+
+llvm::Expected<std::string> canonicalize(llvm::StringRef expression) {
+  auto unit = parse(expression);
+  if (!unit) {
+    return unit.takeError();
+  }
+  return format(unit.get());
+}
+
 llvm::Expected<Unit> multiply(const Unit &lhs, const Unit &rhs) {
   auto result = units_mul(lhs.get(), rhs.get());
   return takeUnitResult(result);
@@ -85,11 +98,6 @@ llvm::Expected<Unit> multiply(const Unit &lhs, const Unit &rhs) {
 llvm::Expected<Unit> add(const Unit &lhs, const Unit &rhs) {
   auto result = units_add(lhs.get(), rhs.get());
   return takeUnitResult(result);
-}
-
-llvm::Expected<std::string> format(const Unit &unit) {
-  auto result = units_format_unit(unit.get());
-  return takeStringResult(result);
 }
 
 llvm::Expected<double> conversionFactor(const Unit &from, const Unit &to) {

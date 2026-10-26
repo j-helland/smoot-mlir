@@ -15,6 +15,10 @@ def UnitsDialect : Dialect {
 
   let useDefaultTypePrinterParser = 1;
   let useDefaultAttributePrinterParser = 1;
+
+  let extraClassDeclaration = [{
+    void registerAttributes();
+  }];
 }
 
 #endif // LIB_DIALECT_UNITS_UNITSDIALECT_TD_

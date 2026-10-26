@@ -30,12 +30,14 @@ private:
 
 llvm::Expected<Unit> parse(llvm::StringRef expression);
 
+llvm::Expected<std::string> format(const Unit &unit);
+
+llvm::Expected<std::string> canonicalize(llvm::StringRef expression);
+
 llvm::Expected<Unit> multiply(const Unit &lhs, const Unit &rhs);
 
 llvm::Expected<Unit> add(const Unit &lhs, const Unit &rhs);
 
 llvm::Expected<double> conversionFactor(const Unit &from, const Unit &to);
-
-llvm::Expected<std::string> format(const Unit &unit);
 
 } // namespace mlir::units::algebra
