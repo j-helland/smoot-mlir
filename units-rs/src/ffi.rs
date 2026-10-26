@@ -5,7 +5,7 @@ use std::{
     sync::LazyLock,
 };
 
-use smoot_rs::{registry::Registry, unit::Unit};
+use smoot_rs::{quantity::Quantity, registry::Registry, unit::Unit};
 
 static REGISTRY: LazyLock<Result<Registry, String>> = LazyLock::new(|| {
     Registry::new_from_str(include_str!("../data/unit-definitions.txt")).map_err(|e| e.to_string())
@@ -14,6 +14,11 @@ static REGISTRY: LazyLock<Result<Registry, String>> = LazyLock::new(|| {
 #[allow(non_camel_case_types)]
 pub struct Units_Unit {
     unit: Unit,
+}
+
+trait FFIResult<T> {
+    fn ok(value: T) -> Self;
+    fn err(error: String) -> Self;
 }
 
 #[repr(C)]
@@ -30,50 +35,50 @@ pub struct Units_StringResult {
     pub error: *mut c_char,
 }
 
-trait FfiResult<T> {
-    fn ok(value: T) -> Self;
-    fn err(error: String) -> Self;
+#[repr(C)]
+pub struct Units_F64Result {
+    pub ok: bool,
+    pub value: f64,
+    pub error: *mut c_char,
 }
 
-impl FfiResult<*mut c_char> for Units_StringResult {
-    fn ok(value: *mut c_char) -> Self {
-        Self {
-            ok: true,
-            value,
-            error: ptr::null_mut(),
-        }
-    }
-
-    fn err(error: String) -> Self {
-        Self {
-            ok: false,
-            value: ptr::null_mut(),
-            error: into_c_string(error),
-        }
-    }
+#[repr(C)]
+pub struct Units_BoolResult {
+    pub ok: bool,
+    pub value: bool,
+    pub error: *mut c_char,
 }
 
-impl FfiResult<*mut Units_Unit> for Units_UnitResult {
-    fn ok(value: *mut Units_Unit) -> Self {
-        Self {
-            ok: true,
-            value,
-            error: ptr::null_mut(),
-        }
-    }
+macro_rules! impl_units_result {
+    ($result_type:ident, $val_type:ty) => {
+        impl FFIResult<$val_type> for $result_type {
+            fn ok(value: $val_type) -> Self {
+                Self {
+                    ok: true,
+                    value,
+                    error: ptr::null_mut(),
+                }
+            }
 
-    fn err(error: String) -> Self {
-        Self {
-            ok: false,
-            value: ptr::null_mut(),
-            error: into_c_string(error),
+            fn err(error: String) -> Self {
+                Self {
+                    ok: false,
+                    value: Default::default(),
+                    error: into_c_string(error),
+                }
+            }
         }
-    }
+    };
 }
+
+impl_units_result!(Units_UnitResult, *mut Units_Unit);
+impl_units_result!(Units_StringResult, *mut c_char);
+impl_units_result!(Units_F64Result, f64);
+impl_units_result!(Units_BoolResult, bool);
 
 fn ffi_result<T, R, F>(f: F) -> R
 where
-    R: FfiResult<T>,
+    R: FFIResult<T>,
     F: FnOnce() -> Result<T, String>,
 {
     match f() {
@@ -136,6 +141,37 @@ pub extern "C" fn units_add(lhs: *const Units_Unit, rhs: *const Units_Unit) -> U
         unit.map(|unit| Units_Unit { unit })
             .map(Box::new)
             .map(Box::into_raw)
+    })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn units_is_compatible_with(
+    from: *const Units_Unit,
+    to: *const Units_Unit,
+) -> Units_BoolResult {
+    ffi_result(|| {
+        let from = read_unit(from, "from")?;
+        let to = read_unit(to, "to")?;
+        Ok(from.is_compatible_with(to))
+    })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn units_conversion_factor(
+    from: *const Units_Unit,
+    to: *const Units_Unit,
+) -> Units_F64Result {
+    ffi_result(|| {
+        let from = read_unit(from, "from")?;
+        let to = read_unit(to, "to")?;
+
+        // TODO(jwh): support affine and logarithmic units
+        if from.is_offset() || to.is_offset() {
+            return Err("offset units are not supported by multiplicative conversion".to_string());
+        }
+
+        let quantity = Quantity::new(1.0, from.clone());
+        quantity.m_as(to, None).map_err(|e| e.to_string())
     })
 }
 

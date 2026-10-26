@@ -347,6 +347,41 @@ void units::AddOp::print(mlir::OpAsmPrinter &printer) {
 }
 
 //==================================================
+// ConvertOp
+//==================================================
+llvm::LogicalResult units::ConvertOp::verify() {
+  auto fromType = llvm::cast<units::QuantityType>(getInput().getType());
+  auto toType = llvm::cast<units::QuantityType>(getResult().getType());
+
+  if (fromType.getElementType() != toType.getElementType()) {
+    return emitOpError("input and result element types must match");
+  }
+  if (!fromType.getElementType().isF64()) {
+    return emitOpError("only f64 conversions are currently supported");
+  }
+
+  auto fromUnit = units::algebra::parse(fromType.getUnit().getExpression());
+  if (!fromUnit) {
+    llvm::consumeError(fromUnit.takeError());
+    return llvm::failure();
+  }
+
+  auto toUnit = units::algebra::parse(toType.getUnit().getExpression());
+  if (!toUnit) {
+    llvm::consumeError(toUnit.takeError());
+    return llvm::failure();
+  }
+
+  auto compatible = fromUnit->isCompatibleWith(toUnit.get());
+  if (!compatible) {
+    llvm::consumeError(compatible.takeError());
+    return llvm::failure();
+  }
+
+  return mlir::success();
+}
+
+//==================================================
 // TableGen'd op method definitions
 //==================================================
 #define GET_OP_CLASSES

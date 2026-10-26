@@ -23,6 +23,7 @@ add_custom_command(
           --config "${UNITS_RS_DIR}/cbindgen.toml"
           --crate units-rs
           --output "${UNITS_RS_HEADER}"
+          --depfile "${UNITS_RS_DEPFILE}"
 
   # cbindgen may leave the timestamp unchanged if the contents match
   COMMAND "${CMAKE_COMMAND}" -E touch "${UNITS_RS_HEADER}"
@@ -32,6 +33,8 @@ add_custom_command(
       "${UNITS_RS_DIR}/Cargo.lock"
       "${UNITS_RS_DIR}/cbindgen.toml"
       "${CBINDGEN_EXE}"
+
+  DEPFILE "${UNITS_RS_DEPFILE}"
 
   WORKING_DIRECTORY "${UNITS_RS_DIR}"
   COMMENT "Generating units_rs.h"

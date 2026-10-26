@@ -22,6 +22,8 @@ public:
 
   const Units_Unit *get() const { return unit; }
 
+  llvm::Expected<bool> isCompatibleWith(const Unit &other) const;
+
 private:
   Units_Unit *unit = nullptr;
 };
@@ -31,6 +33,8 @@ llvm::Expected<Unit> parse(llvm::StringRef expression);
 llvm::Expected<Unit> multiply(const Unit &lhs, const Unit &rhs);
 
 llvm::Expected<Unit> add(const Unit &lhs, const Unit &rhs);
+
+llvm::Expected<double> conversionFactor(const Unit &from, const Unit &to);
 
 llvm::Expected<std::string> format(const Unit &unit);
 

@@ -1,4 +1,5 @@
 #include "UnitsToStandard.h"
+#include "Units/UnitsAlgebra.h"
 #include "Units/UnitsOps.h"
 #include "Units/UnitsTypes.h"
 
@@ -83,6 +84,49 @@ struct AddLowering : mlir::OpConversionPattern<AddOp> {
   }
 };
 
+struct ConvertLowering : mlir::OpConversionPattern<ConvertOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  /**
+   * Replace a Quantity.to operation with equivalent lowered MLIR.
+   */
+  mlir::LogicalResult
+  matchAndRewrite(ConvertOp op, OpAdaptor adaptor,
+                  mlir::ConversionPatternRewriter &rewriter) const override {
+    auto fromType = llvm::cast<QuantityType>(op.getInput().getType());
+    auto toType = llvm::cast<QuantityType>(op.getResult().getType());
+
+    auto fromUnit = algebra::parse(fromType.getUnit().getExpression());
+    if (!fromUnit) {
+      return rewriter.notifyMatchFailure(op,
+                                         llvm::toString(fromUnit.takeError()));
+    }
+
+    auto toUnit = algebra::parse(toType.getUnit().getExpression());
+    if (!toUnit) {
+      return rewriter.notifyMatchFailure(op,
+                                         llvm::toString(toUnit.takeError()));
+    }
+
+    auto factor = algebra::conversionFactor(*fromUnit, *toUnit);
+    if (!factor) {
+      return rewriter.notifyMatchFailure(op,
+                                         llvm::toString(factor.takeError()));
+    }
+
+    auto elementType = toType.getElementType();
+    auto constant = mlir::arith::ConstantOp::create(
+        rewriter, op.getLoc(), elementType,
+        rewriter.getFloatAttr(elementType, *factor));
+    auto scaled =
+        mlir::arith::MulFOp::create(rewriter, op.getLoc(), elementType,
+                                    adaptor.getInput(), constant.getResult());
+
+    rewriter.replaceOp(op, scaled.getResult());
+    return mlir::success();
+  }
+};
+
 } // namespace
 
 void UnitsToStandardPass::runOnOperation() {
@@ -95,8 +139,10 @@ void UnitsToStandardPass::runOnOperation() {
   converter.addConversion(
       [](QuantityType type) -> mlir::Type { return type.getElementType(); });
 
+  // Register all custom units lowerings.
   mlir::RewritePatternSet patterns(&context);
-  patterns.add<ConstLowering, MulLowering, AddLowering>(converter, &context);
+  patterns.add<ConstLowering, MulLowering, AddLowering, ConvertLowering>(
+      converter, &context);
 
   mlir::populateFunctionOpInterfaceTypeConversionPattern<mlir::func::FuncOp>(
       patterns, converter);
