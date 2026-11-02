@@ -1,4 +1,4 @@
-[![NixCI](https://nix-ci.com/badge/gh:j-helland:smoot-mlir)](https://nix-ci.com/gh:j-helland:smoot-mlir)
+[![Build status](https://badge.buildkite.com/3f339a51886480817a68afdb7c9cef1c49872dad25b8180fa8.svg)](https://buildkite.com/jonathan-helland/smoot-mlir)
 
 # Usage
 

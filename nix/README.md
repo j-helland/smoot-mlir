@@ -12,4 +12,4 @@ The files here are ordinary Nix functions with explicit arguments. They are call
 
 To add a native platform, extend `systems` in [flake.nix](../flake.nix).
 
-CI platform and build selection are configured separately in `nix-ci.nix`.
+CI is configured in [`.buildkite/pipeline.yml`](../.buildkite/pipeline.yml).
