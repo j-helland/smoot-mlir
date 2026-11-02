@@ -1,0 +1,9 @@
+steps:
+  - label: ":nixos: Validate configuration"
+    key: "validate"
+    agents:
+      queue: "homelab"
+      nix: "true"
+    timeout_in_minutes: 15
+    command: |
+      nix flake check --no-update-lock-file 'path:.'
