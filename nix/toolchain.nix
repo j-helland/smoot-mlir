@@ -34,6 +34,12 @@ let
   exportBackendEnv = exportEnv backendEnv;
   exportUvEnv = exportEnv uvEnv;
 
+  exportPythonToolEnv = ''
+    export PYTHON_EXE="${devtoolsPythonEnv}/bin/python3"
+    export NANOBIND_DIR="$("$PYTHON_EXE" -m nanobind --cmake_dir)"
+    export LIT_EXE="${devtoolsPythonEnv}/bin/lit"
+  '';
+
   backendNativeBuildInputs = [
     pkgs.cmake
     pkgs.ninja
@@ -62,6 +68,7 @@ in
     backendNativeBuildInputs
     backendBuildInputs
     exportBackendEnv
+    exportPythonToolEnv
     exportUvEnv
     ;
 }

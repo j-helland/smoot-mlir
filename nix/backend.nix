@@ -2,18 +2,11 @@
   pkgs,
   src,
   llvm,
-  devtoolsPythonEnv,
   backendNativeBuildInputs,
   backendBuildInputs,
   exportBackendEnv,
+  exportPythonToolEnv,
 }:
-let
-  exportPythonToolEnv = ''
-    export PYTHON_EXE="${devtoolsPythonEnv}/bin/python3"
-    export NANOBIND_DIR="$("$PYTHON_EXE" -m nanobind --cmake_dir)"
-    export LIT_EXE="${devtoolsPythonEnv}/bin/lit"
-  '';
-in
 llvm.stdenv.mkDerivation {
   pname = "units-backend";
   version = "0.0.0";
