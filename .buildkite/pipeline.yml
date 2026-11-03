@@ -5,5 +5,8 @@ steps:
       queue: "homelab"
       nix: "true"
     timeout_in_minutes: 15
+    # Buildkite runs commands in a PTY, which makes Nix draw its redrawing
+    # progress bar. Piping stderr through cat streams plain build log lines.
     command: |
-      nix flake check --no-update-lock-file 'path:.'
+      set -o pipefail
+      nix flake check --print-build-logs --no-update-lock-file 'path:.' 2>&1 | cat

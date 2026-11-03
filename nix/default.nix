@@ -37,9 +37,15 @@ let
 
   backendPackage = import ./backend.nix {
     inherit pkgs src llvm;
-    inherit (pythonEnvs) devtoolsPythonEnv;
-    inherit (toolchain) backendNativeBuildInputs backendBuildInputs exportBackendEnv;
+    inherit (toolchain)
+      backendNativeBuildInputs
+      backendBuildInputs
+      exportBackendEnv
+      exportPythonToolEnv
+      ;
   };
+
+  miseTools = import ./mise-tools.nix { inherit pkgs src; };
 in
 {
   packages = {
@@ -54,9 +60,16 @@ in
       llvm
       backendPackage
       mlirPythonPath
+      miseTools
       ;
     inherit (pythonEnvs) frontendPythonEnv;
-    inherit (toolchain) exportUvEnv;
+    inherit (toolchain)
+      backendNativeBuildInputs
+      backendBuildInputs
+      exportBackendEnv
+      exportPythonToolEnv
+      exportUvEnv
+      ;
   };
 
   devShells.default = import ./shell.nix {
