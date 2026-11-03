@@ -27,6 +27,40 @@
   
   '''
 # ---
+# name: test_mlir_emitter[func_for_loop_range_with_step]
+  '''
+  module {
+    func.func @func_for_loop_range_with_step(%arg0: !units.quantity<f64, #units.unit<"meter">>) -> !units.quantity<f64, #units.unit<"meter">> {
+      %c1 = arith.constant 1 : index
+      %c5 = arith.constant 5 : index
+      %c2 = arith.constant 2 : index
+      %0 = scf.for %arg1 = %c1 to %c5 step %c2 iter_args(%arg2 = %arg0) -> (!units.quantity<f64, #units.unit<"meter">>) {
+        %1 = units.add %arg2, %arg2 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
+        scf.yield %1 : !units.quantity<f64, #units.unit<"meter">>
+      }
+      return %0 : !units.quantity<f64, #units.unit<"meter">>
+    }
+  }
+  
+  '''
+# ---
+# name: test_mlir_emitter[func_for_loop_range_with_target]
+  '''
+  module {
+    func.func @func_for_loop_range_with_target(%arg0: !units.quantity<f64, #units.unit<"meter">>) -> !units.quantity<f64, #units.unit<"meter">> {
+      %c0 = arith.constant 0 : index
+      %c10 = arith.constant 10 : index
+      %c1 = arith.constant 1 : index
+      %0 = scf.for %arg1 = %c0 to %c10 step %c1 iter_args(%arg2 = %arg0) -> (!units.quantity<f64, #units.unit<"meter">>) {
+        %1 = units.add %arg2, %arg2 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
+        scf.yield %1 : !units.quantity<f64, #units.unit<"meter">>
+      }
+      return %0 : !units.quantity<f64, #units.unit<"meter">>
+    }
+  }
+  
+  '''
+# ---
 # name: test_mlir_emitter[func_meter_to_centimeter]
   '''
   module {

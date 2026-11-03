@@ -195,8 +195,8 @@ def _transform_for_loop(
         msg = "for loop else statements are unsupported"
         raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
-    if not isinstance(loop.target, ast.Name) or loop.target.id != "_":
-        msg = "only an ignored loop target '_' is supported"
+    if not isinstance(loop.target, ast.Name):
+        msg = f"unsupported for loop target: {loop.target!r}"
         raise UnitsCompileError(Diagnostic.frontend(msg, span))
 
     iterable = _transform_expr(loop.iter, ctx)
@@ -206,6 +206,7 @@ def _transform_for_loop(
         symbol_table=ctx.symbol_table.copy(),
         is_in_loop=True,
     )
+    loop_ctx.symbol_table[loop.target.id] = Symbol()
     statements = (_transform_stmt(stmt, loop_ctx) for stmt in loop.body)
 
     return For(
@@ -294,22 +295,30 @@ def _transform_range(
     ctx: _AstTransformCtx,
 ) -> Range:
     span = SourceSpan.from_ast(call, ctx.span)
-    match call:
-        case ast.Call(
-            args=[ast.Constant(value=stop) as bound],
-            keywords=[],
-        ) if type(stop) is int and stop >= 0:
-            return Range(
-                start=Constant(value=0, span=span),
-                stop=_transform_expr(bound, ctx),
-                step=Constant(value=1, span=span),
-                span=span,
-            )
 
-        # TODO(jwh): support more than just `for _ in range(N)`
+    if call.keywords or not 1 <= len(call.args) <= 3:
+        msg = "expected range(stop), range(start, stop), or range(start, stop, step)"
+        raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
+    args = [_parse_range_bound(arg, ctx) for arg in call.args]
+
+    match args:
+        case [stop]:
+            start = Constant(value=0, span=span)
+            step = Constant(value=1, span=span)
+        case [start, stop]:
+            step = Constant(value=1, span=span)
+        case [start, stop, step]:
+            pass
         case _:
-            msg = "expected range(N) with nonnegative integer literal"
-            raise UnitsCompileError(Diagnostic.frontend(msg, span))
+            msg = "argument was already counted"
+            raise AssertionError(msg)
+
+    if step.value == 0:
+        msg = "range step must not be zero"
+        raise UnitsCompileError(Diagnostic.frontend(msg, step.span))
+
+    return Range(start=start, stop=stop, step=step, span=span)
 
 
 def _transform_annotation(
@@ -389,3 +398,34 @@ def _parse_unit_expr(
             msg = f"unsupported unit annotation: {ast.dump(node)}"
             span = SourceSpan.from_ast(node, ctx.span)
             raise UnitsCompileError(Diagnostic.frontend(msg, span))
+
+
+def _parse_range_bound(
+    arg: ast.expr,
+    ctx: _AstTransformCtx,
+) -> Constant:
+    span = SourceSpan.from_ast(arg, ctx.span)
+
+    match arg:
+        case ast.Constant(value=value) if type(value) is int:
+            return Constant(value=value, span=span)
+
+        case ast.UnaryOp(
+            op=ast.USub(),
+            operand=ast.Constant(value=value, span=span),
+        ) if type(value) is int:
+            return Constant(value=-value, span=span)
+
+        case ast.UnaryOp(
+            op=ast.UAdd(),
+            operand=ast.Constant(value=value),
+        ) if type(value) is int:
+            return Constant(value=value, span=span)
+
+        case _:
+            raise UnitsCompileError(
+                Diagnostic.frontend(
+                    "range bounds and step must be integer literals",
+                    span,
+                )
+            )

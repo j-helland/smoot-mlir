@@ -33,6 +33,18 @@ def func_for_loop_range(x: Meter) -> Meter:
     return x
 
 
+def func_for_loop_range_with_step(x: Meter) -> Meter:
+    for _ in range(1, 5, 2):
+        x = x + x
+    return x
+
+
+def func_for_loop_range_with_target(x: Meter) -> Meter:
+    for i in range(10):
+        x = x + x
+    return x
+
+
 def func_meter_to_centimeter(x: Meter) -> Centimeter:
     return x.to("cm")
 
@@ -44,6 +56,8 @@ def func_meter_to_centimeter(x: Meter) -> Centimeter:
         func_add,
         func_multi_argument,
         func_for_loop_range,
+        func_for_loop_range_with_step,
+        func_for_loop_range_with_target,
         func_meter_to_centimeter,
     ),
 )
