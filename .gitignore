@@ -5,3 +5,5 @@ docs/
 # nix flake checks
 result
 
+# macOS cruft
+.DS_Store

@@ -46,6 +46,18 @@ def repeat(x: Meter) -> Meter:
     return x
 
 
+def repeat_with_step(x: Meter) -> Meter:
+    for _ in range(1, 5, 2):
+        x = x + x
+    return x
+
+
+def repeat_with_target(x: Meter) -> Meter:
+    for i in range(3):
+        x = x + x
+    return x
+
+
 @pytest.fixture(
     scope="module",  # compile functions once
     params=[
@@ -67,6 +79,14 @@ def repeat(x: Meter) -> Meter:
         pytest.param(
             (repeat, st.tuples(scalar)),
             id="for-range",
+        ),
+        pytest.param(
+            (repeat_with_step, st.tuples(scalar)),
+            id="for-range-with-step",
+        ),
+        pytest.param(
+            (repeat_with_target, st.tuples(scalar)),
+            id="for-range-with-target",
         ),
     ],
 )

@@ -183,6 +183,7 @@ class MlirEmitter:
         # Don't mutate outer symbols with symbols scoped to the loop body.
         # NOTE(jwh): This differs from normal Python semantics, which does not scope loop body symbols.
         body_symbols = symbols.copy()
+        body_symbols[loop.target] = op.induction_variable
         for name, arg in zip(carried, op.inner_iter_args, strict=True):
             body_symbols[name] = arg
 
