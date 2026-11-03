@@ -179,6 +179,40 @@ def test_transform_for_range_upper_and_lower_bounds_with_step():
     assert isinstance(result, Return)
 
 
+def test_transform_for_range_with_target():
+    def repeat(x: Meters) -> Meters:
+        for i in range(3):
+            j = i + 1  # noqa: F841
+            x = x + x
+        return x
+
+    func = transform_ast(repeat)
+    assert isinstance(func, Function)
+
+    loop, result = func.body
+    assert isinstance(loop, For)
+    assert isinstance(loop.iterable, Range)
+
+    bounds = loop.iterable
+    assert isinstance(bounds.start, Constant)
+    assert bounds.start.value == 0
+    assert isinstance(bounds.stop, Constant)
+    assert bounds.stop.value == 3
+    assert isinstance(bounds.step, Constant)
+    assert bounds.step.value == 1
+
+    assert len(loop.body) == 2
+    assert isinstance(assign1 := loop.body[0], Assign)
+    assert assign1.name == "j"
+    assert isinstance(assign1.expr, Binary)
+
+    assert isinstance(assign2 := loop.body[1], Assign)
+    assert assign2.name == "x"
+    assert isinstance(assign2.expr, Binary)
+
+    assert isinstance(result, Return)
+
+
 def test_transform_convert():
     def func_convert(x: Meters) -> Centimeters:
         return x.to("centimeter")

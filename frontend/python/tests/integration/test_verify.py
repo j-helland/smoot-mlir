@@ -56,6 +56,7 @@ def repeat_with_step(x: Meter) -> Meter:
 
 def repeat_with_target(x: Meter) -> Meter:
     for i in range(3):
+        j = i + 1  # noqa: F841
         x = x + x
     return x
 

@@ -41,6 +41,7 @@ def func_for_loop_range_with_step(x: Meter) -> Meter:
 
 def func_for_loop_range_with_target(x: Meter) -> Meter:
     for i in range(10):
+        j = i + 1  # noqa: F841
         x = x + x
     return x
 
