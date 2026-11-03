@@ -52,8 +52,10 @@
       %c10 = arith.constant 10 : index
       %c1 = arith.constant 1 : index
       %0 = scf.for %arg1 = %c0 to %c10 step %c1 iter_args(%arg2 = %arg0) -> (!units.quantity<f64, #units.unit<"meter">>) {
-        %1 = units.add %arg2, %arg2 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
-        scf.yield %1 : !units.quantity<f64, #units.unit<"meter">>
+        %c1_0 = arith.constant 1 : index
+        %1 = arith.addi %arg1, %c1_0 : index
+        %2 = units.add %arg2, %arg2 : !units.quantity<f64, #units.unit<"meter">>, !units.quantity<f64, #units.unit<"meter">>
+        scf.yield %2 : !units.quantity<f64, #units.unit<"meter">>
       }
       return %0 : !units.quantity<f64, #units.unit<"meter">>
     }

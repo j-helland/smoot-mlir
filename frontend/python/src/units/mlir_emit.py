@@ -117,27 +117,14 @@ class MlirEmitter:
             case Name(name=name):
                 return symbols[name]
 
-            case Binary(op=op, lhs=lhs, rhs=rhs):
-                lhs_val = self.emit_expr(lhs, symbols)
-                rhs_val = self.emit_expr(rhs, symbols)
-                match op:
-                    case Operator.add:
-                        operation = units_ops.AddOp(
-                            lhs_val,
-                            rhs_val,
-                            loc=lower_location(expr.span),
-                        )
-                    case Operator.mul:
-                        operation = units_ops.MulOp(
-                            lhs_val,
-                            rhs_val,
-                            loc=lower_location(expr.span),
-                        )
-                    case _:
-                        raise UnitsCompileError(
-                            Diagnostic.emit(f"unsupported operator {op!r}", expr.span)
-                        )
-                return operation.result
+            case Constant(value=value) if type(value) is int:
+                return arith.ConstantOp.create_index(
+                    value,
+                    loc=lower_location(expr.span),
+                ).result
+
+            case Binary() as binary:
+                return self.emit_binary(binary, symbols, expr.span)
 
             case Convert(value=value, target=target):
                 input = self.emit_expr(value, symbols)
@@ -155,6 +142,38 @@ class MlirEmitter:
             case _:
                 msg = f"unsupported IR expression: {expr!r}"
                 raise UnitsCompileError(Diagnostic.emit(msg))
+
+    def emit_binary(
+        self,
+        binary: Binary,
+        symbols: MlirSymbolTableType,
+        span: SourceSpan | None,
+    ) -> ir.Value:
+        lhs, op, rhs = binary.lhs, binary.op, binary.rhs
+
+        lhs_val = self.emit_expr(lhs, symbols)
+        rhs_val = self.emit_expr(rhs, symbols)
+
+        lhs_is_index = lhs_val.type == ir.IndexType.get()
+        rhs_is_index = rhs_val.type == ir.IndexType.get()
+        if lhs_is_index != rhs_is_index:
+            msg = "index arithmetic requires two index operands"
+            raise UnitsCompileError(Diagnostic.emit(msg, span))
+
+        match op:
+            case Operator.add:
+                op_class = arith.AddIOp if lhs_is_index else units_ops.AddOp
+            case Operator.mul:
+                op_class = arith.MulIOp if lhs_is_index else units_ops.MulOp
+            case _:
+                msg = f"unsupported operator {op!r}"
+                raise UnitsCompileError(Diagnostic.emit(msg, span))
+
+        return op_class(
+            lhs_val,
+            rhs_val,
+            loc=lower_location(span),
+        ).result
 
     def emit_range_loop(
         self,
