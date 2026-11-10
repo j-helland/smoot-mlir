@@ -75,3 +75,5 @@ Due to the number of moving parts in this repo, I found it prudent to use Nix as
 
 ## CI/CD
 With Nix already in place, it was also natural to use flake builds and checks for CI pipelines. I dislike second-wave YAML-based CI/CD systems like GitHub Actions, GitLab CI/CD, Buildkite, etc. and will actively try to minimize their presence in my projects when I can get away with it.
+
+Right now I'm using self-hosted Buildkite agents to execute CI on my homelab runners. 
